@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "cmake-language-server"
+version = "0.1.0"
+description = "CMake LSP Implementation"
+authors = ["regen"]
+license = "MIT"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development",
+    "Topic :: Text Editors :: Integrated Development Environments (IDE)",
+    "Topic :: Utilities"
+]
+keywords = ["cmake", "completion", "vim"]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+pygls = "^0.8.1"
+pyparsing = "^2.4"
+
+[tool.poetry.dev-dependencies]
+flake8 = "^3.7"
+mypy = "^0.740.0"
+pytest = "^5.2"
+yapf = "^0.28.0"
+pytest-datadir = "^1.3"
+tox = "^3.14"
+isort = "^4.3"
+
+[tool.poetry.scripts]
+cmake-format = "cmake_language_server.formatter:main"
+cmake-language-server = "cmake_language_server.server:main"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
