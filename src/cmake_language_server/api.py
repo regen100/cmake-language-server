@@ -50,7 +50,8 @@ class API(object):
 
         proc = subprocess.run([self._cmake, self._build],
                               universal_newlines=True,
-                              capture_output=True)
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE)
         self.query_json.unlink()
         self.query_json.parent.rmdir()
         if proc.returncode != 0:
@@ -133,7 +134,8 @@ endforeach()
             p = subprocess.run([self._cmake, '-P', tmplist],
                                cwd=cmake_files['paths']['source'],
                                universal_newlines=True,
-                               capture_output=True)
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
             if p.returncode != 0:
                 return
 

@@ -43,8 +43,9 @@ def test_parse_commands(cmake_build):
     api.parse_doc()
 
     p = subprocess.run(['cmake', '--help-command-list'],
-                       capture_output=True,
-                       universal_newlines=True)
+                       universal_newlines=True,
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
     commands = p.stdout.strip().split('\n')
 
     for command in commands:
@@ -59,8 +60,9 @@ def test_parse_variables(cmake_build):
     api.parse_doc()
 
     p = subprocess.run(['cmake', '--help-variable-list'],
-                       capture_output=True,
-                       universal_newlines=True)
+                       universal_newlines=True,
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
     variables = p.stdout.strip().split('\n')
 
     for variable in variables:

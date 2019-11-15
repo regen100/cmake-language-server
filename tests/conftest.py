@@ -1,18 +1,16 @@
-import logging
-
 import pytest
 
 
 @pytest.fixture()
 def cmake_build(shared_datadir):
-    from subprocess import run
+    from subprocess import run, PIPE
     source = shared_datadir / 'cmake'
     build = source / 'build'
     build.mkdir()
-    p = run(['cmake', '-S', source, '-B', build],
-            check=True,
-            capture_output=True,
-            universal_newlines=True)
-    logging.debug(p.stdout)
-    logging.debug(p.stderr)
+    run(['cmake', source],
+        check=True,
+        cwd=build,
+        stdout=PIPE,
+        stderr=PIPE,
+        universal_newlines=True)
     yield build

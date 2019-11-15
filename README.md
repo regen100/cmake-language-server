@@ -1,4 +1,5 @@
 # cmake-language-server
+[![GitHub Actions (Tests)](https://github.com/regen100/cmake-language-server/workflows/Tests/badge.svg)](https://github.com/regen100/cmake-language-server/actions)
 
 CMake LSP Implementation.
 
