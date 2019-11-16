@@ -2,8 +2,11 @@
 name = "cmake-language-server"
 version = "0.1.0"
 description = "CMake LSP Implementation"
-authors = ["regen"]
 license = "MIT"
+authors = ["regen"]
+readme = "README.md"
+repository = "https://github.com/regen100/cmake-language-server"
+keywords = ["cmake", "completion", "vim", "lsp"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -13,7 +16,6 @@ classifiers = [
     "Topic :: Text Editors :: Integrated Development Environments (IDE)",
     "Topic :: Utilities"
 ]
-keywords = ["cmake", "completion", "vim"]
 
 [tool.poetry.dependencies]
 python = "^3.6"
