@@ -10,6 +10,11 @@ Alpha Stage, work in progress.
 - [x] Documentation for commands and variables on hover
 - [x] Formatting
 
+## Commands
+
+- cmake-language-server: LSP server
+- cmake-format: CLI frontend for formatting
+
 ## Installation
 
 ### Clients
