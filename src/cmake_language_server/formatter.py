@@ -86,6 +86,7 @@ def main(args: List[str] = None):
     from pathlib import Path
     from argparse import ArgumentParser
     from .parser import ListParser
+    from difflib import unified_diff
 
     parser = ArgumentParser()
     parser.add_argument('lists', type=Path, nargs='*', help='CMake list files')
@@ -93,6 +94,7 @@ def main(args: List[str] = None):
                         '--inplace',
                         action='store_true',
                         help='inplace edit')
+    parser.add_argument('-d', '--diff', action='store_true', help='show diff')
 
     args = parser.parse_args(args)
 
@@ -102,15 +104,20 @@ def main(args: List[str] = None):
         with listpath.open() as fp:
             content = fp.read()
         tokens, remain = list_parser.parse(content)
-        if remain:
-            if args.inplace:
-                pass
-            else:
-                print(content, end='')
-        else:
-            formated = formatter.format(tokens)
-            if args.inplace:
+        formatted = content if remain else formatter.format(tokens)
+
+        if args.inplace:
+            if not remain:
                 with listpath.open('w') as fp:
-                    fp.write(formated)
+                    fp.write(formatted)
+        else:
+            if args.diff:
+                diff = unified_diff(content.splitlines(True),
+                                    formatted.splitlines(True), str(listpath),
+                                    str(listpath), '(before formatting)',
+                                    '(after formatting)')
+                diffstr = ''.join(diff)
+                if diffstr:
+                    print(diffstr, end='')
             else:
-                print(formated, end='')
+                print(formatted, end='')
