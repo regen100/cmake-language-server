@@ -6,20 +6,19 @@ jobs:
   build:
     env:
       CMAKE_VERSION: 3.14.7
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-18.04
     strategy:
       matrix:
-        os: [ubuntu-18.04]
         python: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v1
-      - name: Cache .tox
+      - name: Cache .venev
         uses: actions/cache@v1
         with:
-          path: .tox
-          key: ${{ runner.OS }}-tox-${{ hashFiles('poetry.lock') }}
+          path: .venev
+          key: ${{ runner.OS }}-venv-${{ hashFiles('poetry.lock') }}
           restore-keys: |
-            ${{ runner.OS }}-tox-
+            ${{ runner.OS }}-venv-
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v1
         with:
@@ -32,4 +31,5 @@ jobs:
       - name: Test with tox
         run: |
           export PATH=$GITHUB_WORKSPACE/cmake-$CMAKE_VERSION-Linux-x86_64/bin:$PATH
+          poetry config settings.virtualenvs.in-project true
           tox
