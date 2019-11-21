@@ -19,6 +19,10 @@ Alpha Stage, work in progress.
 
 ## Installation
 
+```bash
+$ pip install cmake-language-server
+```
+
 ### Clients
 
 - Neovim ([neoclide/coc.nvim][coc.nvim])
