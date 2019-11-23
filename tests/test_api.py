@@ -35,7 +35,14 @@ def test_read_cmake_files(cmake_build):
     assert api.query()
     api.read_reply()
 
-    assert 'GNU' in api.get_variable_doc('CMAKE_CXX_COMPILER_ID')
+    import platform
+    system = platform.system()
+    if system == 'Linux':
+        assert 'GNU' in api.get_variable_doc('CMAKE_CXX_COMPILER_ID')
+    elif system == 'Windows':
+        assert 'MSVC' in api.get_variable_doc('CMAKE_CXX_COMPILER_ID')
+    else:
+        raise RuntimeError('Unexpected system')
 
 
 def test_parse_commands(cmake_build):

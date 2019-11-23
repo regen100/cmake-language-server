@@ -48,7 +48,7 @@ class API(object):
   ]
 }''')
 
-        proc = subprocess.run([self._cmake, self._build],
+        proc = subprocess.run([self._cmake, str(self._build)],
                               universal_newlines=True,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.PIPE)
@@ -131,11 +131,12 @@ foreach (variable ${variables})
   message("${variable}=${${variable}}")
 endforeach()
 ''')
-            p = subprocess.run([self._cmake, '-P', tmplist],
-                               cwd=cmake_files['paths']['source'],
-                               universal_newlines=True,
-                               stdout=subprocess.PIPE,
-                               stderr=subprocess.PIPE)
+            p = subprocess.run(
+                [self._cmake, '-P', str(tmplist)],
+                cwd=cmake_files['paths']['source'],
+                universal_newlines=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
             if p.returncode != 0:
                 return
 
