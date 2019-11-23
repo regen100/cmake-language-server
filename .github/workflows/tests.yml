@@ -12,13 +12,6 @@ jobs:
         python: [3.6, 3.7, 3.8]
     steps:
       - uses: actions/checkout@v1
-      - name: Cache .venev
-        uses: actions/cache@v1
-        with:
-          path: .venev
-          key: ${{ runner.OS }}-venv-${{ hashFiles('poetry.lock') }}
-          restore-keys: |
-            ${{ runner.OS }}-venv-
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v1
         with:
@@ -31,5 +24,4 @@ jobs:
       - name: Test with tox
         run: |
           export PATH=$GITHUB_WORKSPACE/cmake-$CMAKE_VERSION-Linux-x86_64/bin:$PATH
-          poetry config settings.virtualenvs.in-project true
           tox
