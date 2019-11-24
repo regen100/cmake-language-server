@@ -83,10 +83,11 @@ class Formatter(object):
 
 
 def main(args: List[str] = None):
-    from pathlib import Path
     from argparse import ArgumentParser
-    from .parser import ListParser
     from difflib import unified_diff
+    from pathlib import Path
+    from . import __version__
+    from .parser import ListParser
 
     parser = ArgumentParser()
     parser.add_argument('lists', type=Path, nargs='*', help='CMake list files')
@@ -95,6 +96,9 @@ def main(args: List[str] = None):
                         action='store_true',
                         help='inplace edit')
     parser.add_argument('-d', '--diff', action='store_true', help='show diff')
+    parser.add_argument('--version',
+                        action='version',
+                        version=f'%(prog)s {__version__}')
 
     args = parser.parse_args(args)
 
