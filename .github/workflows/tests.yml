@@ -24,6 +24,7 @@ jobs:
           CMAKE_VERSION=3.14.7
           curl -sSL https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz | tar xz
           sudo cp -rT cmake-$CMAKE_VERSION-Linux-x86_64 /usr/local
+          rm -rf cmake-$CMAKE_VERSION-Linux-x86_64
       - name: Install dependencies
         run: |
           python -m pip install --upgrade setuptools pip wheel
@@ -31,3 +32,10 @@ jobs:
       - name: Test with tox
         run: |
           tox
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          name: Python ${{ matrix.python }} on ${{ matrix.os }}
+          fail_ci_if_error: true
