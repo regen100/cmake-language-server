@@ -15,8 +15,9 @@ def cmake_build(shared_datadir):
     if p.returncode != 0:
         import logging
         import os
-        logging.error(os.environ)
-        logging.error(p.stdout)
-        logging.error(p.stderr)
+        import pprint
+        logging.error('env:\n' + pprint.pformat(os.environ))
+        logging.error('stdout:\n' + p.stdout)
+        logging.error('stderr:\n' + p.stderr)
         raise RuntimeError("CMake failed")
     yield build
