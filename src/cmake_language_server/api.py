@@ -186,9 +186,9 @@ endforeach()
         matches = re.finditer(
             r'''
 (?P<command>.+)\n
--+\n\n
+-+\n+?
 [\s\S]*?
-(?P<signature>\ (?P=command)\s*\([^)]*\))
+(?P<signature>(?P=command)\s*\([^)]*\))
 ''', p.stdout, re.VERBOSE)
         self._builtin_commands.clear()
         for match in matches:
