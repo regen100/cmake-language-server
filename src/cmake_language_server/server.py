@@ -40,23 +40,21 @@ class CMakeLanguageServer(LanguageServer):
             self._api = API(cmake, Path(builddir))
             self._api.parse_doc()
 
-        @self.feature(COMPLETION, trigger_characters=['{'])
+        @self.feature(COMPLETION, trigger_characters=['{', '('])
         def completions(params: CompletionParams):
             if (params.context.triggerKind ==
                     CompletionTriggerKind.TriggerCharacter):
                 token = ''
                 trigger = params.context.triggerCharacter
             else:
-                ret = self.cursor_word(params.textDocument.uri,
-                                       params.position, False)
-                if not ret:
-                    return None
-                token = ret[0]
+                word = self._cursor_word(params.textDocument.uri,
+                                         params.position, False)
+                token = '' if word is None else word[0]
                 trigger = None
 
             items: List[CompletionItem] = []
 
-            if trigger != '{':
+            if trigger is None:
                 commands = self._api.search_command(token)
                 items.extend(
                     CompletionItem(x,
@@ -64,18 +62,41 @@ class CMakeLanguageServer(LanguageServer):
                                    documentation=self._api.get_command_doc(x))
                     for x in commands)
 
-            variables = self._api.search_variable(token)
-            items.extend(
-                CompletionItem(x,
-                               CompletionItemKind.Variable,
-                               documentation=self._api.get_variable_doc(x))
-                for x in variables)
+            if trigger is None or trigger == '{':
+                variables = self._api.search_variable(token)
+                items.extend(
+                    CompletionItem(x,
+                                   CompletionItemKind.Variable,
+                                   documentation=self._api.get_variable_doc(x))
+                    for x in variables)
 
-            if trigger != '{':
+            if trigger is None:
                 targets = self._api.search_target(token)
                 items.extend(
                     CompletionItem(x, CompletionItemKind.Class)
                     for x in targets)
+
+            if trigger == '(':
+                func = self._cursor_function(params.textDocument.uri,
+                                             params.position)
+                if func is not None:
+                    func = func.lower()
+                    if func == 'include':
+                        modules = self._api.search_module(token, False)
+                        items.extend(
+                            CompletionItem(x,
+                                           CompletionItemKind.Module,
+                                           documentation=self._api.
+                                           get_module_doc(x, False))
+                            for x in modules)
+                    elif func == 'find_package':
+                        modules = self._api.search_module(token, True)
+                        items.extend(
+                            CompletionItem(x,
+                                           CompletionItemKind.Module,
+                                           documentation=self._api.
+                                           get_module_doc(x, True))
+                            for x in modules)
 
             return CompletionList(False, items)
 
@@ -97,15 +118,23 @@ class CMakeLanguageServer(LanguageServer):
 
         @self.feature(HOVER)
         def hover(params: TextDocumentPositionParams):
-            ret = self.cursor_word(params.textDocument.uri, params.position)
-            if not ret:
+            word = self._cursor_word(params.textDocument.uri, params.position,
+                                     True)
+            if not word:
                 return None
-            doc = self._api.get_command_doc(ret[0].lower())
-            if not doc:
-                doc = self._api.get_variable_doc(ret[0])
-                if not doc:
-                    return None
-            return Hover(MarkupContent(MarkupKind.Markdown, doc), ret[1])
+
+            candidates = [
+                lambda x: self._api.get_command_doc(x.lower()),
+                lambda x: self._api.get_variable_doc(x),
+                lambda x: self._api.get_module_doc(x, False),
+                lambda x: self._api.get_module_doc(x, True),
+            ]
+            for c in candidates:
+                doc = c(word[0])
+                if doc is None:
+                    continue
+                return Hover(MarkupContent(MarkupKind.Markdown, doc), word[1])
+            return None
 
         @self.thread()
         @self.feature(TEXT_DOCUMENT_DID_SAVE, includeText=False)
@@ -114,21 +143,32 @@ class CMakeLanguageServer(LanguageServer):
             if self._api.query():
                 self._api.read_reply()
 
-    def cursor_word(self,
-                    uri: str,
-                    position: Position,
-                    include_all: bool = True) -> Optional[Tuple[str, Range]]:
+    def _cursor_function(self, uri: str, position: Position) -> Optional[str]:
+        doc = self.workspace.get_document(uri)
+        lines = doc.source.split('\n')[:position.line + 1]
+        lines[-1] = lines[-1][:position.character - 1].strip()
+        words = re.split(r'[\s\n()]+', '\n'.join(lines))
+        return words[-1] if words else None
+
+    def _cursor_line(self, uri: str, position: Position) -> str:
         doc = self.workspace.get_document(uri)
         content = doc.source
         line = content.split('\n')[position.line]
+        return line
+
+    def _cursor_word(self,
+                     uri: str,
+                     position: Position,
+                     include_all: bool = True) -> Optional[Tuple[str, Range]]:
+        line = self._cursor_line(uri, position)
         cursor = position.character
         for m in re.finditer(r'\w+', line):
+            end = m.end() if include_all else cursor
             if m.start() <= cursor <= m.end():
-                end = m.end() if include_all else cursor
-                return (line[m.start():end],
+                word = (line[m.start():end],
                         Range(Position(position.line, m.start()),
                               Position(position.line, end)))
-
+                return word
         return None
 
 

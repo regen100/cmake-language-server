@@ -80,3 +80,31 @@ def test_parse_variables(cmake_build):
 
     assert api.get_variable_doc('BUILD_SHARED_LIBS') is not None
     assert api.get_variable_doc('not_existing_variable') is None
+
+
+def test_parse_modules(cmake_build):
+    api = API('cmake', cmake_build)
+    api.parse_doc()
+
+    p = subprocess.run(['cmake', '--help-module-list'],
+                       universal_newlines=True,
+                       stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
+    modules = p.stdout.strip().split('\n')
+
+    for module in modules:
+        if module.startswith('Find'):
+            assert api.get_module_doc(module[4:],
+                                      True) is not None, f'{module} not found'
+        else:
+            assert api.get_module_doc(module,
+                                      False) is not None, f'{module} not found'
+
+    assert api.get_module_doc('GoogleTest', False) is not None
+    assert api.get_module_doc('GoogleTest', True) is None
+    assert api.search_module('GoogleTest', False) == ['GoogleTest']
+    assert api.search_module('GoogleTest', True) == []
+    assert api.get_module_doc('Boost', False) is None
+    assert api.get_module_doc('Boost', True) is not None
+    assert api.search_module('Boost', False) == []
+    assert api.search_module('Boost', True) == ['Boost']
