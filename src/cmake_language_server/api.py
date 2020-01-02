@@ -10,6 +10,15 @@ from typing import Dict, List, Optional, Pattern
 logger = logging.getLogger(__name__)
 
 
+def _tidy_doc(doc: str) -> str:
+    doc = doc.strip()
+    doc = re.sub(r':.+?:`(.+?)`', r'\1', doc)
+    doc = re.sub(r'``([^`]+)``', r'`\1`', doc)
+    doc = doc.replace('\n', ' ')
+    doc = doc.replace('.  ', '. ')
+    return doc
+
+
 class API(object):
     _cmake: str
     _build: Path
@@ -17,6 +26,7 @@ class API(object):
     _builtin_commands: Dict[str, str]
     _builtin_variables: Dict[str, str]
     _builtin_variable_template: Dict[Pattern, str]
+    _builtin_modules: Dict[str, str]
     _targets: List[str]
     _cached_variables: Dict[str, str]
     _generated_list_parsed: bool
@@ -29,6 +39,7 @@ class API(object):
         self._builtin_commands = {}
         self._builtin_variables = {}
         self._builtin_variable_template = {}
+        self._builtin_modules = {}
         self._targets = []
         self._cached_variables = {}
         self._generated_list_parsed = False
@@ -174,6 +185,7 @@ endforeach()
     def parse_doc(self) -> None:
         self._parse_commands()
         self._parse_variables()
+        self._parse_modules()
 
     def _parse_commands(self) -> None:
         p = subprocess.run([self._cmake, '--help-commands'],
@@ -215,11 +227,7 @@ endforeach()
         self._builtin_variables.clear()
         for match in matches:
             variable = match.group('variable')
-            doc = match.group('doc')
-            doc = re.sub(r':.+:`(.+)`', r'\1', doc)
-            doc = re.sub(r'``(.+)``', r'`\1`', doc)
-            doc = doc.replace('\n', ' ')
-            doc = doc.replace('.  ', '. ')
+            doc = _tidy_doc(match.group('doc'))
             if variable == 'CMAKE_MATCH_<n>':
                 for i in range(10):
                     self._builtin_variables[f'CMAKE_MATCH_{i}'] = doc
@@ -229,6 +237,30 @@ endforeach()
                 self._builtin_variable_template[pattern] = doc
             else:
                 self._builtin_variables[variable] = doc
+
+    def _parse_modules(self) -> None:
+        p = subprocess.run([self._cmake, '--help-modules'],
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+
+        if p.returncode != 0:
+            return
+
+        matches = re.finditer(
+            r'''
+(?P<module>.+)\n
+-+\n+?
+(?:(?P<header>\w[\w\s]+)\n\^+\n+?)?
+(?P<doc>.(?:.|\n)+?\n\n)
+''', p.stdout + '\n\n', re.VERBOSE)
+        self._builtin_modules.clear()
+        for match in matches:
+            module = match.group('module')
+            header = match.group('header')
+            doc = _tidy_doc(match.group('doc'))
+            if header is not None and header != 'Overview':
+                doc = ''
+            self._builtin_modules[module] = doc
 
     def get_command_doc(self, command: str) -> Optional[str]:
         return self._builtin_commands.get(command)
@@ -249,6 +281,24 @@ endforeach()
         builtin = frozenset(x for x in self._builtin_variables
                             if x.startswith(variable))
         return list(cached | builtin)
+
+    def get_module_doc(self, module: str, package: bool) -> Optional[str]:
+        if package:
+            return self._builtin_modules.get('Find' + module)
+
+        return self._builtin_modules.get(module)
+
+    def search_module(self, module: str, package: bool) -> List[str]:
+        if package:
+            module = 'Find' + module
+            return [
+                x[4:] for x in self._builtin_modules if x.startswith(module)
+            ]
+
+        return [
+            x for x in self._builtin_modules
+            if x.startswith(module) and not x.startswith('Find')
+        ]
 
     def search_target(self, target: str) -> List[str]:
         return [x for x in self._targets if x.startswith(target)]
