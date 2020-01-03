@@ -23,8 +23,8 @@ class CMakeLanguageServer(LanguageServer):
     _parser: ListParser
     _api: API
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args):
+        super().__init__(*args)
 
         self._parser = ListParser()
         self._api = None
