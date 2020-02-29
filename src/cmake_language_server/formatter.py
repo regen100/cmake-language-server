@@ -91,11 +91,12 @@ def main(args: List[str] = None):
 
     parser = ArgumentParser()
     parser.add_argument('lists', type=Path, nargs='*', help='CMake list files')
-    parser.add_argument('-i',
-                        '--inplace',
-                        action='store_true',
-                        help='inplace edit')
-    parser.add_argument('-d', '--diff', action='store_true', help='show diff')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-i',
+                       '--inplace',
+                       action='store_true',
+                       help='inplace edit')
+    group.add_argument('-d', '--diff', action='store_true', help='show diff')
     parser.add_argument('--version',
                         action='version',
                         version=f'%(prog)s {__version__}')
@@ -114,14 +115,12 @@ def main(args: List[str] = None):
             if not remain:
                 with listpath.open('w') as fp:
                     fp.write(formatted)
+        elif args.diff:
+            diff = unified_diff(content.splitlines(True),
+                                formatted.splitlines(True), str(listpath),
+                                str(listpath), '(before formatting)',
+                                '(after formatting)')
+            diffstr = ''.join(diff)
+            print(diffstr, end='')
         else:
-            if args.diff:
-                diff = unified_diff(content.splitlines(True),
-                                    formatted.splitlines(True), str(listpath),
-                                    str(listpath), '(before formatting)',
-                                    '(after formatting)')
-                diffstr = ''.join(diff)
-                if diffstr:
-                    print(diffstr, end='')
-            else:
-                print(formatted, end='')
+            print(formatted, end='')
