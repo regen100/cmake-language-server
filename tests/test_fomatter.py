@@ -1,4 +1,4 @@
-from cmake_language_server.formatter import Formatter
+from cmake_language_server.formatter import Formatter, main
 from cmake_language_server.parser import ListParser
 
 
@@ -72,3 +72,63 @@ if()
   )  # h
 endif()
 ''')
+
+
+def test_main_noinput(capsys):
+    main([])
+    captured = capsys.readouterr()
+    assert captured.out == ''
+    assert captured.err == ''
+
+
+def test_main_file_1(capsys, tmp_path):
+    testfile1 = tmp_path / 'list1.cmake'
+    with testfile1.open('w') as fp:
+        fp.write(' a()')
+
+    main([str(testfile1)])
+    captured = capsys.readouterr()
+    assert captured.out == 'a()\n'
+    assert captured.err == ''
+
+
+def test_main_file_2(capsys, tmp_path):
+    testfile1 = tmp_path / 'list1.cmake'
+    with testfile1.open('w') as fp:
+        fp.write(' a()')
+    testfile2 = tmp_path / 'list2.cmake'
+    with testfile2.open('w') as fp:
+        fp.write(' b()')
+
+    main([str(testfile1), str(testfile2)])
+    captured = capsys.readouterr()
+    assert captured.out == 'a()\nb()\n'
+    assert captured.err == ''
+
+
+def test_main_inplace(capsys, tmp_path):
+    testfile1 = tmp_path / 'list1.cmake'
+    with testfile1.open('w') as fp:
+        fp.write(' a()')
+
+    main(['-i', str(testfile1)])
+    captured = capsys.readouterr()
+    assert captured.out == ''
+    assert captured.err == ''
+
+    with testfile1.open() as fp:
+        content = fp.read()
+    assert content == 'a()\n'
+
+
+def test_main_diff(capsys, tmp_path):
+    testfile1 = tmp_path / 'list1.cmake'
+    with testfile1.open('w') as fp:
+        fp.write(' a()')
+
+    main(['-d', str(testfile1)])
+    captured = capsys.readouterr()
+    assert str(testfile1) in captured.out
+    assert '- a()' in captured.out
+    assert '+a()' in captured.out
+    assert captured.err == ''
