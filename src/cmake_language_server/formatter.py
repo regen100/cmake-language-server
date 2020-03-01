@@ -86,10 +86,16 @@ def main(args: List[str] = None):
     from argparse import ArgumentParser
     from difflib import unified_diff
     from pathlib import Path
+    import sys
     from . import __version__
     from .parser import ListParser
 
-    parser = ArgumentParser()
+    parser = ArgumentParser(
+        description='Format CMake list files.',
+        epilog='''
+            If no arguments are specified, it formats the code from
+            standard input and writes the result to the standard output.''',
+    )
     parser.add_argument('lists', type=Path, nargs='*', help='CMake list files')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-i',
@@ -103,11 +109,22 @@ def main(args: List[str] = None):
 
     args = parser.parse_args(args)
 
+    if not args.lists and args.inplace:
+        print('error: cannot use -i when no arguments are specified.',
+              file=sys.stderr)
+        return
+    if not args.lists:
+        args.lists.append(None)
+
     list_parser = ListParser()
     formatter = Formatter()
     for listpath in args.lists:
-        with listpath.open() as fp:
-            content = fp.read()
+        if listpath is None:
+            listpath = '(stdin)'
+            content = sys.stdin.read()
+        else:
+            with listpath.open() as fp:
+                content = fp.read()
         tokens, remain = list_parser.parse(content)
         formatted = content if remain else formatter.format(tokens)
 
