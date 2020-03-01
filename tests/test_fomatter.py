@@ -1,3 +1,7 @@
+import sys
+from contextlib import contextmanager
+from io import StringIO
+
 from cmake_language_server.formatter import Formatter, main
 from cmake_language_server.parser import ListParser
 
@@ -74,10 +78,28 @@ endif()
 ''')
 
 
-def test_main_noinput(capsys):
-    main([])
+@contextmanager
+def mock_stdin(buf: str):
+    stdin = sys.stdin
+    sys.stdin = StringIO(buf)
+    yield
+    sys.stdin = stdin
+
+
+def test_main_stdin(capsys):
+    with mock_stdin(' a()'):
+        main([])
     captured = capsys.readouterr()
-    assert captured.out == ''
+    assert captured.out == 'a()\n'
+    assert captured.err == ''
+
+
+def test_main_stdin_diff(capsys):
+    with mock_stdin(' a()'):
+        main(['-d'])
+    captured = capsys.readouterr()
+    assert '- a()' in captured.out
+    assert '+a()' in captured.out
     assert captured.err == ''
 
 
