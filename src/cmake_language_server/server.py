@@ -172,7 +172,16 @@ class CMakeLanguageServer(LanguageServer):
         return None
 
 
-def main():
+def main(args=None):
+    from argparse import ArgumentParser
+    from . import __version__
+
+    parser = ArgumentParser(description='CMake Language Server')
+    parser.add_argument('--version',
+                        action='version',
+                        version=f'%(prog)s {__version__}')
+    args = parser.parse_args(args)
+
     logging.basicConfig(level=logging.INFO)
     logging.getLogger('pygls').setLevel(logging.WARNING)
     CMakeLanguageServer().start_io()
