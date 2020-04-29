@@ -60,9 +60,10 @@ class API(object):
 }''')
 
         proc = subprocess.run([self._cmake, str(self._build)],
-                              universal_newlines=True,
                               stdout=subprocess.PIPE,
-                              stderr=subprocess.PIPE)
+                              stderr=subprocess.PIPE,
+                              encoding='utf-8',
+                              universal_newlines=True)
         self.query_json.unlink()
         self.query_json.parent.rmdir()
         if proc.returncode != 0:
@@ -144,10 +145,11 @@ endforeach()
 ''')
             p = subprocess.run(
                 [self._cmake, '-P', str(tmplist)],
-                cwd=cmake_files['paths']['source'],
-                universal_newlines=True,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+                stderr=subprocess.PIPE,
+                cwd=cmake_files['paths']['source'],
+                encoding='utf-8',
+                universal_newlines=True)
             if p.returncode != 0:
                 return
 
@@ -190,6 +192,7 @@ endforeach()
     def _parse_commands(self) -> None:
         p = subprocess.run([self._cmake, '--help-commands'],
                            stdout=subprocess.PIPE,
+                           encoding='utf-8',
                            universal_newlines=True)
 
         if p.returncode != 0:
@@ -213,6 +216,7 @@ endforeach()
     def _parse_variables(self) -> None:
         p = subprocess.run([self._cmake, '--help-variables'],
                            stdout=subprocess.PIPE,
+                           encoding='utf-8',
                            universal_newlines=True)
 
         if p.returncode != 0:
@@ -241,6 +245,7 @@ endforeach()
     def _parse_modules(self) -> None:
         p = subprocess.run([self._cmake, '--help-modules'],
                            stdout=subprocess.PIPE,
+                           encoding='utf-8',
                            universal_newlines=True)
 
         if p.returncode != 0:
