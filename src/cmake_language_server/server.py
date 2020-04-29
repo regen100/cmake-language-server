@@ -42,7 +42,7 @@ class CMakeLanguageServer(LanguageServer):
 
         @self.feature(COMPLETION, trigger_characters=['{', '('])
         def completions(params: CompletionParams):
-            if (params.context.triggerKind ==
+            if (hasattr(params, 'context') and params.context.triggerKind ==
                     CompletionTriggerKind.TriggerCharacter):
                 token = ''
                 trigger = params.context.triggerCharacter
