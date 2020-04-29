@@ -63,6 +63,23 @@ def test_completions_invoked(client_server, datadir):
     assert '<PROJECT-NAME>' in item.documentation
 
 
+def test_completions_no_context(client_server, datadir):
+    client, server = client_server
+    _init(client, datadir)
+    path = datadir / 'CMakeLists.txt'
+    _open(client, path, 'projec')
+    params = CompletionParams(TextDocumentIdentifier(path.as_uri()),
+                              Position(0, 6),
+                              CompletionContext(CompletionTriggerKind.Invoked))
+    # some clients do not send context
+    del params.context
+    response = client.lsp.send_request(COMPLETION,
+                                       params).result(timeout=CALL_TIMEOUT)
+    item = next(filter(lambda x: x.label == 'project', response.items), None)
+    assert item is not None
+    assert '<PROJECT-NAME>' in item.documentation
+
+
 def test_completions_triggercharacter_variable(client_server, datadir):
     client, server = client_server
     _init(client, datadir)
