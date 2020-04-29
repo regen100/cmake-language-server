@@ -40,6 +40,21 @@ def _open(client: LanguageServer, path: Path, text: Optional[str] = None):
             TextDocumentItem(path.as_uri(), 'cmake', 1, text)))
 
 
+def _test_completion(client_server, datadir, content: str,
+                     context: Optional[CompletionContext]):
+    client, server = client_server
+    _init(client, datadir)
+    path = datadir / 'CMakeLists.txt'
+    _open(client, path, content)
+    params = CompletionParams(TextDocumentIdentifier(path.as_uri()),
+                              Position(0, len(content)), context)
+    if context is None:
+        # some clients do not send context
+        del params.context
+    return client.lsp.send_request(COMPLETION,
+                                   params).result(timeout=CALL_TIMEOUT)
+
+
 def test_initialize(client_server, datadir):
     client, server = client_server
 
@@ -49,77 +64,51 @@ def test_initialize(client_server, datadir):
 
 
 def test_completions_invoked(client_server, datadir):
-    client, server = client_server
-    _init(client, datadir)
-    path = datadir / 'CMakeLists.txt'
-    _open(client, path, 'projec')
-    response = client.lsp.send_request(
-        COMPLETION,
-        CompletionParams(TextDocumentIdentifier(path.as_uri()), Position(
-            0, 6), CompletionContext(
-                CompletionTriggerKind.Invoked))).result(timeout=CALL_TIMEOUT)
+    response = _test_completion(
+        client_server, datadir, 'projec',
+        CompletionContext(CompletionTriggerKind.Invoked))
     item = next(filter(lambda x: x.label == 'project', response.items), None)
     assert item is not None
     assert '<PROJECT-NAME>' in item.documentation
 
 
-def test_completions_no_context(client_server, datadir):
-    client, server = client_server
-    _init(client, datadir)
-    path = datadir / 'CMakeLists.txt'
-    _open(client, path, 'projec')
-    params = CompletionParams(TextDocumentIdentifier(path.as_uri()),
-                              Position(0, 6),
-                              CompletionContext(CompletionTriggerKind.Invoked))
-    # some clients do not send context
-    del params.context
-    response = client.lsp.send_request(COMPLETION,
-                                       params).result(timeout=CALL_TIMEOUT)
+def test_completions_nocontext(client_server, datadir):
+    response = _test_completion(client_server, datadir, 'projec', None)
     item = next(filter(lambda x: x.label == 'project', response.items), None)
     assert item is not None
     assert '<PROJECT-NAME>' in item.documentation
 
 
 def test_completions_triggercharacter_variable(client_server, datadir):
-    client, server = client_server
-    _init(client, datadir)
-    path = datadir / 'CMakeLists.txt'
-    _open(client, path, '${')
-    response = client.lsp.send_request(
-        COMPLETION,
-        CompletionParams(
-            TextDocumentIdentifier(path.as_uri()), Position(0, 2),
-            CompletionContext(CompletionTriggerKind.TriggerCharacter,
-                              '{'))).result(timeout=CALL_TIMEOUT)
+    response = _test_completion(
+        client_server, datadir, '${',
+        CompletionContext(CompletionTriggerKind.TriggerCharacter, '{'))
     assert 'PROJECT_VERSION' in [x.label for x in response.items]
+
+    response_nocontext = _test_completion(client_server, datadir, '${', None)
+    assert response == response_nocontext
 
 
 def test_completions_triggercharacter_module(client_server, datadir):
-    client, server = client_server
-    _init(client, datadir)
-    path = datadir / 'CMakeLists.txt'
-    _open(client, path, 'include(')
-    response = client.lsp.send_request(
-        COMPLETION,
-        CompletionParams(
-            TextDocumentIdentifier(path.as_uri()), Position(0, 8),
-            CompletionContext(CompletionTriggerKind.TriggerCharacter,
-                              '('))).result(timeout=CALL_TIMEOUT)
+    response = _test_completion(
+        client_server, datadir, 'include(',
+        CompletionContext(CompletionTriggerKind.TriggerCharacter, '('))
     assert 'GoogleTest' in [x.label for x in response.items]
+
+    response_nocontext = _test_completion(client_server, datadir, 'include(',
+                                          None)
+    assert response == response_nocontext
 
 
 def test_completions_triggercharacter_package(client_server, datadir):
-    client, server = client_server
-    _init(client, datadir)
-    path = datadir / 'CMakeLists.txt'
-    _open(client, path, 'find_package(')
-    response = client.lsp.send_request(
-        COMPLETION,
-        CompletionParams(
-            TextDocumentIdentifier(path.as_uri()), Position(0, 13),
-            CompletionContext(CompletionTriggerKind.TriggerCharacter,
-                              '('))).result(timeout=CALL_TIMEOUT)
+    response = _test_completion(
+        client_server, datadir, 'find_package(',
+        CompletionContext(CompletionTriggerKind.TriggerCharacter, '('))
     assert 'Boost' in [x.label for x in response.items]
+
+    response_nocontext = _test_completion(client_server, datadir,
+                                          'find_package(', None)
+    assert response == response_nocontext
 
 
 def test_formatting(client_server, datadir):
