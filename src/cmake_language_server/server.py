@@ -59,21 +59,21 @@ class CMakeLanguageServer(LanguageServer):
                 items.extend(
                     CompletionItem(x,
                                    CompletionItemKind.Function,
-                                   documentation=self._api.get_command_doc(x))
-                    for x in commands)
+                                   documentation=self._api.get_command_doc(x),
+                                   insert_text=x) for x in commands)
 
             if trigger is None or trigger == '{':
                 variables = self._api.search_variable(token)
                 items.extend(
                     CompletionItem(x,
                                    CompletionItemKind.Variable,
-                                   documentation=self._api.get_variable_doc(x))
-                    for x in variables)
+                                   documentation=self._api.get_variable_doc(x),
+                                   insert_text=x) for x in variables)
 
             if trigger is None:
                 targets = self._api.search_target(token)
                 items.extend(
-                    CompletionItem(x, CompletionItemKind.Class)
+                    CompletionItem(x, CompletionItemKind.Class, insert_text=x)
                     for x in targets)
 
             if trigger == '(':
@@ -87,16 +87,16 @@ class CMakeLanguageServer(LanguageServer):
                             CompletionItem(x,
                                            CompletionItemKind.Module,
                                            documentation=self._api.
-                                           get_module_doc(x, False))
-                            for x in modules)
+                                           get_module_doc(x, False),
+                                           insert_text=x) for x in modules)
                     elif func == 'find_package':
                         modules = self._api.search_module(token, True)
                         items.extend(
                             CompletionItem(x,
                                            CompletionItemKind.Module,
                                            documentation=self._api.
-                                           get_module_doc(x, True))
-                            for x in modules)
+                                           get_module_doc(x, True),
+                                           insert_text=x) for x in modules)
 
             return CompletionList(False, items)
 
