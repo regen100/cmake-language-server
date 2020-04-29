@@ -40,17 +40,26 @@ class CMakeLanguageServer(LanguageServer):
             self._api = API(cmake, Path(builddir))
             self._api.parse_doc()
 
-        @self.feature(COMPLETION, trigger_characters=['{', '('])
+        trigger_characters = ['{', '(']
+
+        @self.feature(COMPLETION, trigger_characters=trigger_characters)
         def completions(params: CompletionParams):
             if (hasattr(params, 'context') and params.context.triggerKind ==
                     CompletionTriggerKind.TriggerCharacter):
                 token = ''
                 trigger = params.context.triggerCharacter
             else:
-                word = self._cursor_word(params.textDocument.uri,
-                                         params.position, False)
-                token = '' if word is None else word[0]
-                trigger = None
+                line = self._cursor_line(params.textDocument.uri,
+                                         params.position)
+                idx = params.position.character - 1
+                if 0 <= idx < len(line) and line[idx] in trigger_characters:
+                    token = ''
+                    trigger = line[idx]
+                else:
+                    word = self._cursor_word(params.textDocument.uri,
+                                             params.position, False)
+                    token = '' if word is None else word[0]
+                    trigger = None
 
             items: List[CompletionItem] = []
 
