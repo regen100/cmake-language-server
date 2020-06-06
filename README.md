@@ -25,11 +25,13 @@ Alpha Stage, work in progress.
 $ pip install cmake-language-server
 ```
 
-### Clients
+### Tested Clients
 
-- Neovim ([neoclide/coc.nvim][coc.nvim])
+- Neovim ([neoclide/coc.nvim][coc.nvim], [prabirshrestha/vim-lsp][vim-lsp])
 
 #### Neovim
+
+##### coc.nvim
 
 ```jsonc
   "languageserver": {
@@ -46,5 +48,21 @@ $ pip install cmake-language-server
   }
 ```
 
+##### vim-lsp
+
+```vim
+if executable('cmake-language-server')
+  au User lsp_setup call lsp#register_server({
+  \ 'name': 'cmake',
+  \ 'cmd': {server_info->['cmake-language-server']},
+  \ 'root_uri': {server_info->lsp#utils#path_to_uri(lsp#utils#find_nearest_parent_file_directory(lsp#utils#get_buffer_path(), 'build/'))},
+  \ 'whitelist': ['cmake'],
+  \ 'initialization_options': {
+  \   'buildDirectory': 'build',
+  \ }
+  \})
+endif
+```
 
 [coc.nvim]: https://github.com/neoclide/coc.nvim
+[vim-lsp]: https://github.com/prabirshrestha/vim-lsp
