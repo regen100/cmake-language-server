@@ -41,6 +41,8 @@ def test_read_cmake_files(cmake_build):
         assert 'GNU' in api.get_variable_doc('CMAKE_CXX_COMPILER_ID')
     elif system == 'Windows':
         assert 'MSVC' in api.get_variable_doc('CMAKE_CXX_COMPILER_ID')
+    elif system == 'Darwin':
+        assert 'Clang' in api.get_variable_doc('CMAKE_CXX_COMPILER_ID')
     else:
         raise RuntimeError('Unexpected system')
 
