@@ -15,50 +15,57 @@ def make_formatter_test(liststr: str, expect: str):
     return test
 
 
-test_command = make_formatter_test('a()', 'a()\n')
-test_command_tolower = make_formatter_test('A()', 'a()\n')
-test_remove_space = make_formatter_test('''
+test_command = make_formatter_test("a()", "a()\n")
+test_command_tolower = make_formatter_test("A()", "a()\n")
+test_remove_space = make_formatter_test(
+    """
   #a
   b ( c )  # d
-''', '''\
+""",
+    """\
 #a
 b(c)  # d
-''')
+""",
+)
 test_indent_if = make_formatter_test(
-    '''
+    """
 if()
 a()  # a
  else()
 # b
 b()
 endif()
-''', '''\
+""",
+    """\
 if()
   a()  # a
 else()
   # b
   b()
 endif()
-''')
+""",
+)
 test_indent_if_nested = make_formatter_test(
-    '''
+    """
 if()
 if()
 a()
 b()
 endif()
 endif()
-''', '''\
+""",
+    """\
 if()
   if()
     a()
     b()
   endif()
 endif()
-''')
-test_argument = make_formatter_test('a( b c  d)', 'a(b c d)\n')
+""",
+)
+test_argument = make_formatter_test("a( b c  d)", "a(b c d)\n")
 test_argument_multiline = make_formatter_test(
-    '''
+    """
 if()
 a(b c
 d  # e
@@ -66,7 +73,8 @@ f
 # g
 )  # h
 endif()
-''', '''\
+""",
+    """\
 if()
   a(
     b c
@@ -75,7 +83,8 @@ if()
     # g
   )  # h
 endif()
-''')
+""",
+)
 
 
 @contextmanager
@@ -87,70 +96,70 @@ def mock_stdin(buf: str):
 
 
 def test_main_stdin(capsys):
-    with mock_stdin(' a()'):
+    with mock_stdin(" a()"):
         main([])
     captured = capsys.readouterr()
-    assert captured.out == 'a()\n'
-    assert captured.err == ''
+    assert captured.out == "a()\n"
+    assert captured.err == ""
 
 
 def test_main_stdin_diff(capsys):
-    with mock_stdin(' a()'):
-        main(['-d'])
+    with mock_stdin(" a()"):
+        main(["-d"])
     captured = capsys.readouterr()
-    assert '- a()' in captured.out
-    assert '+a()' in captured.out
-    assert captured.err == ''
+    assert "- a()" in captured.out
+    assert "+a()" in captured.out
+    assert captured.err == ""
 
 
 def test_main_file_1(capsys, tmp_path):
-    testfile1 = tmp_path / 'list1.cmake'
-    with testfile1.open('w') as fp:
-        fp.write(' a()')
+    testfile1 = tmp_path / "list1.cmake"
+    with testfile1.open("w") as fp:
+        fp.write(" a()")
 
     main([str(testfile1)])
     captured = capsys.readouterr()
-    assert captured.out == 'a()\n'
-    assert captured.err == ''
+    assert captured.out == "a()\n"
+    assert captured.err == ""
 
 
 def test_main_file_2(capsys, tmp_path):
-    testfile1 = tmp_path / 'list1.cmake'
-    with testfile1.open('w') as fp:
-        fp.write(' a()')
-    testfile2 = tmp_path / 'list2.cmake'
-    with testfile2.open('w') as fp:
-        fp.write(' b()')
+    testfile1 = tmp_path / "list1.cmake"
+    with testfile1.open("w") as fp:
+        fp.write(" a()")
+    testfile2 = tmp_path / "list2.cmake"
+    with testfile2.open("w") as fp:
+        fp.write(" b()")
 
     main([str(testfile1), str(testfile2)])
     captured = capsys.readouterr()
-    assert captured.out == 'a()\nb()\n'
-    assert captured.err == ''
+    assert captured.out == "a()\nb()\n"
+    assert captured.err == ""
 
 
 def test_main_inplace(capsys, tmp_path):
-    testfile1 = tmp_path / 'list1.cmake'
-    with testfile1.open('w') as fp:
-        fp.write(' a()')
+    testfile1 = tmp_path / "list1.cmake"
+    with testfile1.open("w") as fp:
+        fp.write(" a()")
 
-    main(['-i', str(testfile1)])
+    main(["-i", str(testfile1)])
     captured = capsys.readouterr()
-    assert captured.out == ''
-    assert captured.err == ''
+    assert captured.out == ""
+    assert captured.err == ""
 
     with testfile1.open() as fp:
         content = fp.read()
-    assert content == 'a()\n'
+    assert content == "a()\n"
 
 
 def test_main_diff(capsys, tmp_path):
-    testfile1 = tmp_path / 'list1.cmake'
-    with testfile1.open('w') as fp:
-        fp.write(' a()')
+    testfile1 = tmp_path / "list1.cmake"
+    with testfile1.open("w") as fp:
+        fp.write(" a()")
 
-    main(['-d', str(testfile1)])
+    main(["-d", str(testfile1)])
     captured = capsys.readouterr()
     assert str(testfile1) in captured.out
-    assert '- a()' in captured.out
-    assert '+a()' in captured.out
-    assert captured.err == ''
+    assert "- a()" in captured.out
+    assert "+a()" in captured.out
+    assert captured.err == ""
