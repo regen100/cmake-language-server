@@ -26,11 +26,11 @@ pyparsing = "^2.4"
 flake8 = "^3.7"
 mypy = "^0.740.0"
 pytest = "^5.2"
-yapf = "^0.28.0"
 pytest-datadir = "^1.3"
 tox = "^3.14"
 isort = "^4.3"
 pytest-cov = "^2.8"
+black = "^19.10b0"
 
 [tool.poetry.scripts]
 cmake-format = "cmake_language_server.formatter:main"
