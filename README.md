@@ -64,5 +64,13 @@ if executable('cmake-language-server')
 endif
 ```
 
+### Configuration
+* `buildDirectory`
+  This language server uses CMake's file API to get cached variables.
+  The API communicates using `<buildDirectory>/.cmake/api/`.
+  `buildDirectory` is relative path to the root uri of the workspace.
+  To configure the build tree, you need to run the cmake command such as `cmake .. -DFOO=bar`.
+
+
 [coc.nvim]: https://github.com/neoclide/coc.nvim
 [vim-lsp]: https://github.com/prabirshrestha/vim-lsp
