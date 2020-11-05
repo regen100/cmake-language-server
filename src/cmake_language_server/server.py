@@ -10,6 +10,8 @@ from pygls.features import (
     INITIALIZE,
     INITIALIZED,
     TEXT_DOCUMENT_DID_SAVE,
+    TEXT_DOCUMENT_DID_OPEN,
+    TEXT_DOCUMENT_DID_CHANGE
 )
 from pygls.server import LanguageServer
 from pygls.types import (
@@ -18,6 +20,9 @@ from pygls.types import (
     CompletionList,
     CompletionParams,
     CompletionTriggerKind,
+    DidOpenTextDocumentParams,
+    DidChangeTextDocumentParams,
+    DidSaveTextDocumentParams,
     DocumentFormattingParams,
     Hover,
     InitializeParams,
@@ -31,19 +36,20 @@ from pygls.types import (
 
 from .api import API
 from .formatter import Formatter
-from .parser import ListParser
+from .parser import CMakeListsParser
+from .diagnostics import diagnose
 
 logger = logging.getLogger(__name__)
 
 
 class CMakeLanguageServer(LanguageServer):
-    _parser: ListParser
+    _parser: CMakeListsParser
     _api: API
 
     def __init__(self, *args):
         super().__init__(*args)
 
-        self._parser = ListParser()
+        self._parser = CMakeListsParser()
         self._api = None
 
         @self.feature(INITIALIZE)
@@ -146,7 +152,7 @@ class CMakeLanguageServer(LanguageServer):
         def formatting(params: DocumentFormattingParams):
             doc = self.workspace.get_document(params.textDocument.uri)
             content = doc.source
-            tokens, remain = self._parser.parse(content)
+            tokens, remain = self._parser.parse_tokens(content)
             if remain:
                 self.show_message("CMake parser failed")
                 return None
@@ -175,9 +181,25 @@ class CMakeLanguageServer(LanguageServer):
             return None
 
         @self.thread()
+        @self.feature(TEXT_DOCUMENT_DID_OPEN)
+        @self.feature(TEXT_DOCUMENT_DID_CHANGE)
+        def make_diagnostics(ls, params):
+            # Make diagnostics from parsed AST
+            doc = ls.workspace.get_document(params.textDocument.uri)
+            content = doc.source
+            ast, remain = self._parser.parse_ast(content)
+
+            if remain:
+                self.show_message("CMake parser failed")
+            else:
+                diagnostics = diagnose(ast, content)
+                ls.publish_diagnostics(doc.uri, diagnostics)
+
+        @self.thread()
         @self.feature(TEXT_DOCUMENT_DID_SAVE, includeText=False)
         @self.feature(INITIALIZED)
         def run_cmake(*args):
+            # Re-run CMake
             if self._api.query():
                 self._api.read_reply()
 
@@ -203,7 +225,7 @@ class CMakeLanguageServer(LanguageServer):
             end = m.end() if include_all else cursor
             if m.start() <= cursor <= m.end():
                 word = (
-                    line[m.start() : end],
+                    line[m.start(): end],
                     Range(
                         Position(position.line, m.start()), Position(position.line, end)
                     ),
