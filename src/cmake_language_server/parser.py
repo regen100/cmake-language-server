@@ -1,7 +1,9 @@
 from typing import List, Tuple, Union
+
 import pyparsing as pp
+from pygls.types import Diagnostic, DiagnosticSeverity, Position, Range
+
 from .grammar import ast_grammar, token_grammar
-from pygls.types import Diagnostic, DiagnosticSeverity, Range, Position
 
 CommandTokenType = Tuple[str, List[str]]
 TokenType = Union[str, CommandTokenType]

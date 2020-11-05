@@ -3,12 +3,12 @@ from contextlib import contextmanager
 from io import StringIO
 
 from cmake_language_server.formatter import Formatter, main
-from cmake_language_server.parser import ListParser
+from cmake_language_server.parser import CMakeListsParser
 
 
 def make_formatter_test(liststr: str, expect: str):
     def test():
-        tokens, remain = ListParser().parse(liststr)
+        tokens, remain = CMakeListsParser().parse_tokens(liststr)
         actual = Formatter().format(tokens)
         assert actual == expect
 

@@ -1,8 +1,10 @@
-from typing import Optional, List
-import pyparsing as pp
-from pygls.types import Diagnostic, DiagnosticSeverity, Range, Position
-from .grammar import ASTNode
 from itertools import combinations
+from typing import List, Optional
+
+import pyparsing as pp
+from pygls.types import Diagnostic, DiagnosticSeverity, Position, Range
+
+from .grammar import ASTNode
 
 
 class DiagnosticVisitor(object):
@@ -83,7 +85,8 @@ class ReturnInMacro(DiagnosticVisitor):
 
         return Diagnostic(
             range=self.loc_to_range(node.loc),
-            message="Return in macro: Prefer message(FATAL_ERROR ...) to halt execution in macro",
+            message="Return in macro: Prefer message(FATAL_ERROR ...) to halt "
+            "execution in macro",
             source="cmake-ls",
             severity=DiagnosticSeverity.Warning
         )
@@ -130,10 +133,13 @@ class DuplicateBranch(DiagnosticVisitor):
                 # Mark b a duplicate
                 return Diagnostic(
                     range=self.loc_to_range(b.loc),
-                    message="Duplicate conditional branch: Condition matches a previous branch",
+                    message="Duplicate conditional branch: "
+                    "Condition matches a previous branch",
                     source="cmake-ls",
                     severity=DiagnosticSeverity.Warning
                 )
+
+        return None
 
 
 class ModernizeLowercaseCommands(DiagnosticVisitor):
@@ -179,7 +185,7 @@ class ModernizePreferTargetCmds(DiagnosticVisitor):
 
 
 def diagnose(ast: pp.ParseResults, liststr: str) -> List[Diagnostic]:
-    diagnostics = []
+    diagnostics: List[Diagnostic] = []
 
     visitors = [
         DuplicateBranch,

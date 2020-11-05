@@ -1,13 +1,13 @@
 from typing import List
 
-from cmake_language_server.parser import ListParser, TokenType
+from cmake_language_server.parser import CMakeListsParser, TokenType
 
 
 def make_parser_test(
     liststr: str, expect_token: List[TokenType], expect_remain: str = ""
 ):
     def test():
-        actual_token, actual_remain = ListParser().parse(liststr)
+        actual_token, actual_remain = CMakeListsParser().parse_tokens(liststr)
         assert actual_token == expect_token
         assert actual_remain == expect_remain
 

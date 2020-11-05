@@ -9,9 +9,9 @@ from pygls.features import (
     HOVER,
     INITIALIZE,
     INITIALIZED,
-    TEXT_DOCUMENT_DID_SAVE,
+    TEXT_DOCUMENT_DID_CHANGE,
     TEXT_DOCUMENT_DID_OPEN,
-    TEXT_DOCUMENT_DID_CHANGE
+    TEXT_DOCUMENT_DID_SAVE,
 )
 from pygls.server import LanguageServer
 from pygls.types import (
@@ -33,9 +33,9 @@ from pygls.types import (
 )
 
 from .api import API
+from .diagnostics import diagnose
 from .formatter import Formatter
 from .parser import CMakeListsParser
-from .diagnostics import diagnose
 
 logger = logging.getLogger(__name__)
 
