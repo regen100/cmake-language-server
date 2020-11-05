@@ -1,19 +1,28 @@
 from typing import Optional, List
 import pyparsing as pp
 from pygls.types import Diagnostic, DiagnosticSeverity, Range, Position
+from .grammar import ASTNode
+from itertools import combinations
 
 
 class DiagnosticVisitor(object):
+    """ Base class for visitors """
+
     def __init__(self, liststr):
         self.diagnostics = []
         self.liststr = liststr
 
     def visit(self, node):
-        visit_fn_name = "visit_" + type(node).__name__
-        if hasattr(self, visit_fn_name):
-            maybe_diagnostic = getattr(self, visit_fn_name)(node)
-            if maybe_diagnostic is not None:
-                self.diagnostics.append(maybe_diagnostic)
+        ast_node_bases = [x.__name__ for x in ASTNode.mro()]
+        visit_fns = [
+            "visit_" + x.__name__ for x in type(node).mro()
+            if x.__name__ not in ast_node_bases
+        ]
+        for visit_fn_name in visit_fns:
+            if hasattr(self, visit_fn_name):
+                maybe_diagnostic = getattr(self, visit_fn_name)(node)
+                if maybe_diagnostic is not None:
+                    self.diagnostics.append(maybe_diagnostic)
 
     def loc_to_pos(self, loc):
         return Position(pp.lineno(loc, self.liststr) - 1, pp.col(loc, self.liststr) - 1)
@@ -22,7 +31,67 @@ class DiagnosticVisitor(object):
         return Range(self.loc_to_pos(loc), self.loc_to_pos(loc + 1))
 
 
+class OrphanedLoopCommand(DiagnosticVisitor):
+    """ Finds continue() and break() invocations outside of loops """
+
+    def __init__(self, liststr):
+        super().__init__(liststr)
+        self.loop_counter = 0
+
+    def visit_LoopDeclaration(self, node):
+        self.loop_counter += 1
+
+    def visit_LoopEnd(self, node):
+        self.loop_counter -= 1
+
+    def visit_CommandInvocation(self, node) -> Optional[Diagnostic]:
+        if node.identifier.lower() not in ["break", "continue"]:
+            return None
+
+        if self.loop_counter > 0:
+            return None
+
+        return Diagnostic(
+            range=self.loc_to_range(node.loc),
+            message="Orphaned loop command: Break or continue without parent loop",
+            source="cmake-ls",
+            severity=DiagnosticSeverity.Error
+        )
+
+
+class ReturnInMacro(DiagnosticVisitor):
+    """ Finds return() invocations in macros """
+
+    def __init__(self, liststr):
+        super().__init__(liststr)
+        self.macro_counter = 0
+
+    def visit_CommandDeclarationStart(self, node):
+        if node.identifier.lower() == "macro":
+            self.macro_counter += 1
+
+    def visit_CommandDeclarationEnd(self, node):
+        if node.identifier.lower() == "endmacro":
+            self.macro_counter -= 1
+
+    def visit_CommandInvocation(self, node) -> Optional[Diagnostic]:
+        if node.identifier.lower() != "return":
+            return None
+
+        if self.macro_counter < 0:
+            return None
+
+        return Diagnostic(
+            range=self.loc_to_range(node.loc),
+            message="Return in macro: Prefer message(FATAL_ERROR ...) to halt execution in macro",
+            source="cmake-ls",
+            severity=DiagnosticSeverity.Warning
+        )
+
+
 class RedundantAssignment(DiagnosticVisitor):
+    """ Finds assignments of the form set(A ${A}) """
+
     def visit_CommandInvocation(self, node) -> Optional[Diagnostic]:
         if node.identifier.lower() != "set":
             return None
@@ -48,7 +117,32 @@ class RedundantAssignment(DiagnosticVisitor):
         )
 
 
+class DuplicateBranch(DiagnosticVisitor):
+    """ Finds conditional branches with the exact same conditions """
+
+    def visit_ConditionalBlock(self, node) -> Optional[Diagnostic]:
+        for a, b in combinations(node.branches, 2):
+            all_args_match = all([
+                m.value == n.value
+                for m, n in zip(a.declaration.arguments, b.declaration.arguments)
+            ])
+            if all_args_match:
+                # Mark b a duplicate
+                return Diagnostic(
+                    range=self.loc_to_range(b.loc),
+                    message="Duplicate conditional branch: Condition matches a previous branch",
+                    source="cmake-ls",
+                    severity=DiagnosticSeverity.Warning
+                )
+
+
 class ModernizeLowercaseCommands(DiagnosticVisitor):
+    """ Finds uppercase command incovations """
+    # TODO this doesn't find instances of this on block keywords
+    # (if/function/foreach/etc) because the CaselessLiteral used in the parser
+    # grammar causes loss of case information. Using a case-insensitive Regex
+    # instead has the drawback that the parsing exceptions become unreadable
+
     def visit_CommandInvocation(self, node) -> Optional[Diagnostic]:
         if not node.identifier.isupper():
             return None
@@ -62,6 +156,7 @@ class ModernizeLowercaseCommands(DiagnosticVisitor):
 
 
 class ModernizePreferTargetCmds(DiagnosticVisitor):
+    """ Diagnoses directory-based api calls """
     dir_api = [
         "add_definitions",
         "add_compile_options",
@@ -86,7 +181,16 @@ class ModernizePreferTargetCmds(DiagnosticVisitor):
 def diagnose(ast: pp.ParseResults, liststr: str) -> List[Diagnostic]:
     diagnostics = []
 
-    for visitor_class in [RedundantAssignment, ModernizeLowercaseCommands, ModernizePreferTargetCmds]:
+    visitors = [
+        DuplicateBranch,
+        ModernizeLowercaseCommands,
+        ModernizePreferTargetCmds,
+        OrphanedLoopCommand,
+        RedundantAssignment,
+        ReturnInMacro,
+    ]
+
+    for visitor_class in visitors:
         visitor = visitor_class(liststr)
         ast[0].visit(visitor)
         diagnostics.extend(visitor.diagnostics)

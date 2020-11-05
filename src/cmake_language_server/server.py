@@ -20,9 +20,7 @@ from pygls.types import (
     CompletionList,
     CompletionParams,
     CompletionTriggerKind,
-    DidOpenTextDocumentParams,
-    DidChangeTextDocumentParams,
-    DidSaveTextDocumentParams,
+    Diagnostic,
     DocumentFormattingParams,
     Hover,
     InitializeParams,
@@ -154,7 +152,7 @@ class CMakeLanguageServer(LanguageServer):
             content = doc.source
             tokens, remain = self._parser.parse_tokens(content)
             if remain:
-                self.show_message("CMake parser failed")
+                self.show_message("CMake parser did not match the entire document")
                 return None
 
             formatted = Formatter().format(tokens)
@@ -187,13 +185,17 @@ class CMakeLanguageServer(LanguageServer):
             # Make diagnostics from parsed AST
             doc = ls.workspace.get_document(params.textDocument.uri)
             content = doc.source
-            ast, remain = self._parser.parse_ast(content)
-
-            if remain:
-                self.show_message("CMake parser failed")
-            else:
-                diagnostics = diagnose(ast, content)
-                ls.publish_diagnostics(doc.uri, diagnostics)
+            result = self._parser.parse_ast(content)
+            if isinstance(result, tuple):
+                ast, remain = result
+                if remain:
+                    self.show_message("CMake parser did not match the entire document")
+                else:
+                    # logging.info(f"{ast=}")
+                    diagnostics = diagnose(ast, content)
+                    ls.publish_diagnostics(doc.uri, diagnostics)
+            elif isinstance(result, Diagnostic):
+                ls.publish_diagnostics(doc.uri, [result])
 
         @self.thread()
         @self.feature(TEXT_DOCUMENT_DID_SAVE, includeText=False)
