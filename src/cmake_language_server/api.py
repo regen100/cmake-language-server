@@ -45,6 +45,12 @@ class API(object):
         self._generated_list_parsed = False
 
     def query(self) -> bool:
+        """ Use CMake's file API to get JSON information about the build tree
+
+            Generates a JSON request file for the current build tree and runs
+            CMake on the build tree. Deletes the request file immediately
+            after.
+        """
         if not self.cmake_cache.exists():
             return False
 
@@ -77,6 +83,11 @@ class API(object):
         return True
 
     def read_reply(self) -> bool:
+        """ Reads the CMake file API reply file and updates internal state
+
+            Reads the result of the previous query file and updates
+            the targets, the cache entries and the cmake files.
+        """
         reply = self._build / ".cmake" / "api" / "v1" / "reply"
         indices = sorted(reply.glob("index-*.json"))
         if not indices:
@@ -124,7 +135,7 @@ class API(object):
             self._cached_variables[name] = "\n\n".join(doc)
 
     def _read_cmake_files(self, jsonpath: Path):
-        """inspect generated list files"""
+        """inspect CMake list files that are used during build generation"""
 
         if not self._builtin_variables or self._generated_list_parsed:
             return
@@ -132,7 +143,7 @@ class API(object):
         with jsonpath.open() as fp:
             cmake_files = json.load(fp)
 
-        # inspect generated list files
+        # Inspect generated list files: Get the values of variables in each script
         with tempfile.TemporaryDirectory() as tmpdirname:
             tmplist = Path(tmpdirname) / "dump.cmake"
             with tmplist.open("w") as fp:
@@ -203,6 +214,11 @@ endforeach()
         self._parse_modules()
 
     def _parse_commands(self) -> None:
+        """ Load docs for builtin cmake functions
+
+            Loads the documentation for builtin cmake functions from the result
+            of `$ cmake --help-commands`.
+        """
         p = subprocess.run(
             [self._cmake, "--help-commands"],
             stdout=subprocess.PIPE,
@@ -231,6 +247,11 @@ endforeach()
             self._builtin_commands[command] = "```cmake\n" + signature + "\n```"
 
     def _parse_variables(self) -> None:
+        """ Load docs for builtin cmake variables
+
+            Loads the documentation for builtin cmake variables from
+            the result of `$ cmake --help-variables`.
+        """
         p = subprocess.run(
             [self._cmake, "--help-variables"],
             stdout=subprocess.PIPE,
@@ -265,6 +286,11 @@ endforeach()
                 self._builtin_variables[variable] = doc
 
     def _parse_modules(self) -> None:
+        """ Loads docs for all modules in the cmake distribution
+
+            Loads the documentation for cmake modules included in the
+            distribution from the result of `$ cmake --help-modules`.
+        """
         p = subprocess.run(
             [self._cmake, "--help-modules"],
             stdout=subprocess.PIPE,
