@@ -4,7 +4,7 @@ from .parser import TokenList
 
 
 class Formatter(object):
-    indnt: str
+    indent: str
     lower_identifier: bool
 
     def __init__(self, indent="  ", lower_identifier=True):
@@ -13,7 +13,7 @@ class Formatter(object):
 
     def format(self, tokens: TokenList) -> str:
         cmds: List[str] = [""]
-        indnet_level = 0
+        indent_level = 0
         for token in tokens:
             if isinstance(token, tuple):
                 raw_identifier = token[0]
@@ -27,9 +27,9 @@ class Formatter(object):
                     "endmacro",
                     "endfunction",
                 ):
-                    if indnet_level > 0:
-                        indnet_level -= 1
-                cmds[-1] = self.indent * indnet_level
+                    if indent_level > 0:
+                        indent_level -= 1
+                cmds[-1] = self.indent * indent_level
                 cmds[-1] += identifier if self.lower_identifier else raw_identifier
                 args = self._format_args(token[1])
                 if len(args) < 2:
@@ -37,8 +37,8 @@ class Formatter(object):
                 else:
                     cmds[-1] += "(\n"
                     for arg in args:
-                        cmds[-1] += self.indent * (indnet_level + 1) + arg + "\n"
-                    cmds[-1] += self.indent * indnet_level + ")"
+                        cmds[-1] += self.indent * (indent_level + 1) + arg + "\n"
+                    cmds[-1] += self.indent * indent_level + ")"
                 if identifier in (
                     "if",
                     "elseif",
@@ -48,14 +48,14 @@ class Formatter(object):
                     "macro",
                     "function",
                 ):
-                    indnet_level += 1
+                    indent_level += 1
             elif token == "\n":
                 cmds.append("")
             elif token[0] == "#":
                 if cmds[-1]:
                     cmds[-1] += token
                 else:
-                    cmds[-1] = self.indent * indnet_level + token
+                    cmds[-1] = self.indent * indent_level + token
             elif cmds[-1]:
                 cmds[-1] += token
 
