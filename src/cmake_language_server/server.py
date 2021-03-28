@@ -3,7 +3,7 @@ import re
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple
 
-from pygls.features import (
+from pygls.lsp.methods import (
     COMPLETION,
     FORMATTING,
     HOVER,
@@ -11,11 +11,11 @@ from pygls.features import (
     INITIALIZED,
     TEXT_DOCUMENT_DID_SAVE,
 )
-from pygls.server import LanguageServer
-from pygls.types import (
+from pygls.lsp.types import (
     CompletionItem,
     CompletionItemKind,
     CompletionList,
+    CompletionOptions,
     CompletionParams,
     CompletionTriggerKind,
     DocumentFormattingParams,
@@ -26,8 +26,10 @@ from pygls.types import (
     Position,
     Range,
     TextDocumentPositionParams,
+    TextDocumentSaveRegistrationOptions,
     TextEdit,
 )
+from pygls.server import LanguageServer
 
 from .api import API
 from .formatter import Formatter
@@ -36,7 +38,7 @@ from .parser import ListParser
 logger = logging.getLogger(__name__)
 
 
-class CMakeLanguageServer(LanguageServer):  # type: ignore
+class CMakeLanguageServer(LanguageServer):
     _parser: ListParser
     _api: Optional[API]
 
@@ -48,7 +50,7 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
 
         @self.feature(INITIALIZE)
         def initialize(params: InitializeParams) -> None:
-            opts = params.initializationOptions
+            opts = params.initialization_options
 
             cmake = getattr(opts, "cmakeExecutable", "cmake")
             builddir = getattr(opts, "buildDirectory", "")
@@ -59,25 +61,28 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
 
         trigger_characters = ["{", "("]
 
-        @self.feature(COMPLETION, trigger_characters=trigger_characters)
+        @self.feature(
+            COMPLETION, CompletionOptions(trigger_characters=trigger_characters)
+        )
         def completions(params: CompletionParams) -> CompletionList:
             assert self._api is not None
 
             if (
-                hasattr(params, "context")
-                and params.context.triggerKind == CompletionTriggerKind.TriggerCharacter
+                params.context is not None
+                and params.context.trigger_kind
+                == CompletionTriggerKind.TriggerCharacter
             ):
                 token = ""
-                trigger = params.context.triggerCharacter
+                trigger = params.context.trigger_character
             else:
-                line = self._cursor_line(params.textDocument.uri, params.position)
+                line = self._cursor_line(params.text_document.uri, params.position)
                 idx = params.position.character - 1
                 if 0 <= idx < len(line) and line[idx] in trigger_characters:
                     token = ""
                     trigger = line[idx]
                 else:
                     word = self._cursor_word(
-                        params.textDocument.uri, params.position, False
+                        params.text_document.uri, params.position, False
                     )
                     token = "" if word is None else word[0]
                     trigger = None
@@ -88,8 +93,8 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
                 commands = self._api.search_command(token)
                 items.extend(
                     CompletionItem(
-                        x,
-                        CompletionItemKind.Function,
+                        label=x,
+                        kind=CompletionItemKind.Function,
                         documentation=self._api.get_command_doc(x),
                         insert_text=x,
                     )
@@ -100,8 +105,8 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
                 variables = self._api.search_variable(token)
                 items.extend(
                     CompletionItem(
-                        x,
-                        CompletionItemKind.Variable,
+                        label=x,
+                        kind=CompletionItemKind.Variable,
                         documentation=self._api.get_variable_doc(x),
                         insert_text=x,
                     )
@@ -111,20 +116,22 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
             if trigger is None:
                 targets = self._api.search_target(token)
                 items.extend(
-                    CompletionItem(x, CompletionItemKind.Class, insert_text=x)
+                    CompletionItem(
+                        lable=x, kind=CompletionItemKind.Class, insert_text=x
+                    )
                     for x in targets
                 )
 
             if trigger == "(":
-                func = self._cursor_function(params.textDocument.uri, params.position)
+                func = self._cursor_function(params.text_document.uri, params.position)
                 if func is not None:
                     func = func.lower()
                     if func == "include":
                         modules = self._api.search_module(token, False)
                         items.extend(
                             CompletionItem(
-                                x,
-                                CompletionItemKind.Module,
+                                label=x,
+                                kind=CompletionItemKind.Module,
                                 documentation=self._api.get_module_doc(x, False),
                                 insert_text=x,
                             )
@@ -134,19 +141,19 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
                         modules = self._api.search_module(token, True)
                         items.extend(
                             CompletionItem(
-                                x,
-                                CompletionItemKind.Module,
+                                label=x,
+                                kind=CompletionItemKind.Module,
                                 documentation=self._api.get_module_doc(x, True),
                                 insert_text=x,
                             )
                             for x in modules
                         )
 
-            return CompletionList(False, items)
+            return CompletionList(is_incomplete=False, items=items)
 
         @self.feature(FORMATTING)
         def formatting(params: DocumentFormattingParams) -> Optional[List[TextEdit]]:
-            doc = self.workspace.get_document(params.textDocument.uri)
+            doc = self.workspace.get_document(params.text_document.uri)
             content = doc.source
             tokens, remain = self._parser.parse(content)
             if remain:
@@ -155,14 +162,22 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
 
             formatted = Formatter().format(tokens)
             lines = content.count("\n")
-            return [TextEdit(Range(Position(0, 0), Position(lines + 1, 0)), formatted)]
+            return [
+                TextEdit(
+                    range=Range(
+                        start=Position(line=0, character=0),
+                        end=Position(line=lines + 1, character=0),
+                    ),
+                    new_text=formatted,
+                )
+            ]
 
         @self.feature(HOVER)
         def hover(params: TextDocumentPositionParams) -> Optional[Hover]:
             assert self._api is not None
             api = self._api
 
-            word = self._cursor_word(params.textDocument.uri, params.position, True)
+            word = self._cursor_word(params.text_document.uri, params.position, True)
             if not word:
                 return None
 
@@ -176,11 +191,17 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
                 doc = c(word[0])
                 if doc is None:
                     continue
-                return Hover(MarkupContent(MarkupKind.Markdown, doc), word[1])
+                return Hover(
+                    contents=MarkupContent(kind=MarkupKind.Markdown, value=doc),
+                    range=word[1],
+                )
             return None
 
         @self.thread()
-        @self.feature(TEXT_DOCUMENT_DID_SAVE, includeText=False)
+        @self.feature(
+            TEXT_DOCUMENT_DID_SAVE,
+            TextDocumentSaveRegistrationOptions(include_text=False),
+        )
         @self.feature(INITIALIZED)
         def run_cmake(*args: Any) -> None:
             assert self._api is not None
@@ -212,7 +233,8 @@ class CMakeLanguageServer(LanguageServer):  # type: ignore
                 word = (
                     line[m.start() : end],
                     Range(
-                        Position(position.line, m.start()), Position(position.line, end)
+                        start=Position(line=position.line, character=m.start()),
+                        end=Position(line=position.line, character=end),
                     ),
                 )
                 return word
@@ -232,4 +254,4 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO)
     logging.getLogger("pygls").setLevel(logging.WARNING)
-    CMakeLanguageServer().start_io()
+    CMakeLanguageServer().start_io()  # type: ignore

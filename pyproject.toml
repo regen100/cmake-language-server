@@ -19,7 +19,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = "^3.6"
-pygls = "^0.8.1"
+pygls = "^0.10"
 pyparsing = "^2.4"
 
 [tool.poetry.dev-dependencies]

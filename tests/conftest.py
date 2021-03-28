@@ -9,7 +9,7 @@ from typing import Iterable, Tuple
 
 import pytest
 from cmake_language_server.server import CMakeLanguageServer
-from pygls import features
+from pygls.lsp.methods import EXIT
 from pygls.server import LanguageServer
 
 
@@ -42,9 +42,9 @@ def client_server() -> Iterable[Tuple[LanguageServer, CMakeLanguageServer]]:
         # TODO: better patch is needed
         # disable `close()` to avoid error messages
         close = ls.loop.close
-        ls.loop.close = lambda: None
-        ls.start_io(os.fdopen(fdr, "rb"), os.fdopen(fdw, "wb"))
-        ls.loop.close = close
+        ls.loop.close = lambda: None  # type: ignore
+        ls.start_io(os.fdopen(fdr, "rb"), os.fdopen(fdw, "wb"))  # type: ignore
+        ls.loop.close = close  # type: ignore
 
     server = CMakeLanguageServer(asyncio.new_event_loop())
     server_thread = Thread(target=start, args=(server, c2s_r, s2c_w))
@@ -56,7 +56,7 @@ def client_server() -> Iterable[Tuple[LanguageServer, CMakeLanguageServer]]:
 
     yield client, server
 
-    client.send_notification(features.EXIT)
-    server.send_notification(features.EXIT)
+    client.send_notification(EXIT)
+    server.send_notification(EXIT)
     server_thread.join()
     client_thread.join()
