@@ -1,9 +1,10 @@
 import subprocess
+from pathlib import Path
 
 from cmake_language_server.api import API
 
 
-def test_query_with_cache(cmake_build):
+def test_query_with_cache(cmake_build: Path) -> None:
     api = API("cmake", cmake_build)
     assert api.query()
 
@@ -14,14 +15,14 @@ def test_query_with_cache(cmake_build):
     assert reply.exists()
 
 
-def test_query_without_cache(cmake_build):
+def test_query_without_cache(cmake_build: Path) -> None:
     api = API("cmake", cmake_build)
     (cmake_build / "CMakeCache.txt").unlink()
 
     assert not api.query()
 
 
-def test_read_variable(cmake_build):
+def test_read_variable(cmake_build: Path) -> None:
     api = API("cmake", cmake_build)
     assert api.query()
     assert api.read_reply()
@@ -29,7 +30,7 @@ def test_read_variable(cmake_build):
     assert api.get_variable_doc("testproject_BINARY_DIR")
 
 
-def test_read_cmake_files(cmake_build):
+def test_read_cmake_files(cmake_build: Path) -> None:
     api = API("cmake", cmake_build)
     api.parse_doc()
     assert api.query()
@@ -48,7 +49,7 @@ def test_read_cmake_files(cmake_build):
         raise RuntimeError("Unexpected system")
 
 
-def test_parse_commands(cmake_build):
+def test_parse_commands(cmake_build: Path) -> None:
     api = API("cmake", cmake_build)
     api.parse_doc()
 
@@ -67,7 +68,7 @@ def test_parse_commands(cmake_build):
     assert api.get_command_doc("not_existing_command") is None
 
 
-def test_parse_variables(cmake_build):
+def test_parse_variables(cmake_build: Path) -> None:
     api = API("cmake", cmake_build)
     api.parse_doc()
 
@@ -88,7 +89,7 @@ def test_parse_variables(cmake_build):
     assert api.get_variable_doc("not_existing_variable") is None
 
 
-def test_parse_modules(cmake_build):
+def test_parse_modules(cmake_build: Path) -> None:
     api = API("cmake", cmake_build)
     api.parse_doc()
 

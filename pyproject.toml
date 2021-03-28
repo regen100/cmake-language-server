@@ -23,14 +23,10 @@ pygls = "^0.8.1"
 pyparsing = "^2.4"
 
 [tool.poetry.dev-dependencies]
-flake8 = "^3.7"
-mypy = "^0.740.0"
-pytest = "^5.2"
+pytest = "^6.2"
 pytest-datadir = "^1.3"
-tox = "^3.14"
-isort = "^4.3"
-pytest-cov = "^2.8"
-black = "^19.10b0"
+pytest-cov = "^2.11"
+pysen = {version = "^0.9", extras = ["lint"]}
 
 [tool.poetry.scripts]
 cmake-format = "cmake_language_server.formatter:main"
@@ -39,3 +35,18 @@ cmake-language-server = "cmake_language_server.server:main"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pysen]
+version = "0.9"
+
+[tool.pysen.lint]
+enable_black = true
+enable_flake8 = true
+enable_isort = true
+enable_mypy = true
+mypy_preset = "strict"
+line_length = 88
+py_version = "py36"
+
+[[tool.pysen.lint.mypy_targets]]
+paths = ["."]

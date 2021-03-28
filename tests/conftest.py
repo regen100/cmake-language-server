@@ -2,18 +2,19 @@ import asyncio
 import logging
 import os
 import pprint
+from pathlib import Path
 from subprocess import PIPE, run
 from threading import Thread
+from typing import Iterable, Tuple
 
 import pytest
+from cmake_language_server.server import CMakeLanguageServer
 from pygls import features
 from pygls.server import LanguageServer
 
-from cmake_language_server.server import CMakeLanguageServer
-
 
 @pytest.fixture()
-def cmake_build(shared_datadir):
+def cmake_build(shared_datadir: Path) -> Iterable[Path]:
     source = shared_datadir / "cmake"
     build = source / "build"
     build.mkdir()
@@ -33,11 +34,11 @@ def cmake_build(shared_datadir):
 
 
 @pytest.fixture()
-def client_server():
+def client_server() -> Iterable[Tuple[LanguageServer, CMakeLanguageServer]]:
     c2s_r, c2s_w = os.pipe()
     s2c_r, s2c_w = os.pipe()
 
-    def start(ls: LanguageServer, fdr, fdw):
+    def start(ls: LanguageServer, fdr: int, fdw: int) -> None:
         # TODO: better patch is needed
         # disable `close()` to avoid error messages
         close = ls.loop.close

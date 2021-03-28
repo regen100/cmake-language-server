@@ -1,12 +1,12 @@
-from typing import List
+from typing import Callable, List
 
 from cmake_language_server.parser import ListParser, TokenType
 
 
 def make_parser_test(
     liststr: str, expect_token: List[TokenType], expect_remain: str = ""
-):
-    def test():
+) -> Callable[[], None]:
+    def test() -> None:
         actual_token, actual_remain = ListParser().parse(liststr)
         assert actual_token == expect_token
         assert actual_remain == expect_remain

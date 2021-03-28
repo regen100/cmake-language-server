@@ -1,7 +1,7 @@
 import logging
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from pygls.features import (
     COMPLETION,
@@ -36,18 +36,18 @@ from .parser import ListParser
 logger = logging.getLogger(__name__)
 
 
-class CMakeLanguageServer(LanguageServer):
+class CMakeLanguageServer(LanguageServer):  # type: ignore
     _parser: ListParser
-    _api: API
+    _api: Optional[API]
 
-    def __init__(self, *args):
+    def __init__(self, *args: Any) -> None:
         super().__init__(*args)
 
         self._parser = ListParser()
         self._api = None
 
         @self.feature(INITIALIZE)
-        def initialize(params: InitializeParams):
+        def initialize(params: InitializeParams) -> None:
             opts = params.initializationOptions
 
             cmake = getattr(opts, "cmakeExecutable", "cmake")
@@ -60,7 +60,9 @@ class CMakeLanguageServer(LanguageServer):
         trigger_characters = ["{", "("]
 
         @self.feature(COMPLETION, trigger_characters=trigger_characters)
-        def completions(params: CompletionParams):
+        def completions(params: CompletionParams) -> CompletionList:
+            assert self._api is not None
+
             if (
                 hasattr(params, "context")
                 and params.context.triggerKind == CompletionTriggerKind.TriggerCharacter
@@ -143,7 +145,7 @@ class CMakeLanguageServer(LanguageServer):
             return CompletionList(False, items)
 
         @self.feature(FORMATTING)
-        def formatting(params: DocumentFormattingParams):
+        def formatting(params: DocumentFormattingParams) -> Optional[List[TextEdit]]:
             doc = self.workspace.get_document(params.textDocument.uri)
             content = doc.source
             tokens, remain = self._parser.parse(content)
@@ -156,16 +158,19 @@ class CMakeLanguageServer(LanguageServer):
             return [TextEdit(Range(Position(0, 0), Position(lines + 1, 0)), formatted)]
 
         @self.feature(HOVER)
-        def hover(params: TextDocumentPositionParams):
+        def hover(params: TextDocumentPositionParams) -> Optional[Hover]:
+            assert self._api is not None
+            api = self._api
+
             word = self._cursor_word(params.textDocument.uri, params.position, True)
             if not word:
                 return None
 
-            candidates = [
-                lambda x: self._api.get_command_doc(x.lower()),
-                lambda x: self._api.get_variable_doc(x),
-                lambda x: self._api.get_module_doc(x, False),
-                lambda x: self._api.get_module_doc(x, True),
+            candidates: List[Callable[[str], Optional[str]]] = [
+                lambda x: api.get_command_doc(x.lower()),
+                lambda x: api.get_variable_doc(x),
+                lambda x: api.get_module_doc(x, False),
+                lambda x: api.get_module_doc(x, True),
             ]
             for c in candidates:
                 doc = c(word[0])
@@ -177,7 +182,9 @@ class CMakeLanguageServer(LanguageServer):
         @self.thread()
         @self.feature(TEXT_DOCUMENT_DID_SAVE, includeText=False)
         @self.feature(INITIALIZED)
-        def run_cmake(*args):
+        def run_cmake(*args: Any) -> None:
+            assert self._api is not None
+
             if self._api.query():
                 self._api.read_reply()
 
@@ -192,7 +199,7 @@ class CMakeLanguageServer(LanguageServer):
         doc = self.workspace.get_document(uri)
         content = doc.source
         line = content.split("\n")[position.line]
-        return line
+        return str(line)
 
     def _cursor_word(
         self, uri: str, position: Position, include_all: bool = True
@@ -212,7 +219,7 @@ class CMakeLanguageServer(LanguageServer):
         return None
 
 
-def main(args=None):
+def main() -> None:
     from argparse import ArgumentParser
 
     from . import __version__
@@ -221,7 +228,7 @@ def main(args=None):
     parser.add_argument(
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
-    args = parser.parse_args(args)
+    parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
     logging.getLogger("pygls").setLevel(logging.WARNING)

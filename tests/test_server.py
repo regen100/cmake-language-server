@@ -1,7 +1,8 @@
 from concurrent import futures
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
+from cmake_language_server.server import CMakeLanguageServer
 from pygls.features import (
     COMPLETION,
     FORMATTING,
@@ -12,6 +13,7 @@ from pygls.features import (
 from pygls.server import LanguageServer
 from pygls.types import (
     CompletionContext,
+    CompletionList,
     CompletionParams,
     CompletionTriggerKind,
     DidOpenTextDocumentParams,
@@ -27,7 +29,7 @@ from pygls.types import (
 CALL_TIMEOUT = 2
 
 
-def _init(client: LanguageServer, root: Path):
+def _init(client: LanguageServer, root: Path) -> None:
     retry = 3
     while retry > 0:
         try:
@@ -43,7 +45,7 @@ def _init(client: LanguageServer, root: Path):
             break
 
 
-def _open(client: LanguageServer, path: Path, text: Optional[str] = None):
+def _open(client: LanguageServer, path: Path, text: Optional[str] = None) -> None:
     if text is None:
         with open(path) as fp:
             text = fp.read()
@@ -55,8 +57,11 @@ def _open(client: LanguageServer, path: Path, text: Optional[str] = None):
 
 
 def _test_completion(
-    client_server, datadir, content: str, context: Optional[CompletionContext]
-):
+    client_server: Tuple[LanguageServer, CMakeLanguageServer],
+    datadir: Path,
+    content: str,
+    context: Optional[CompletionContext],
+) -> CompletionList:
     client, server = client_server
     _init(client, datadir)
     path = datadir / "CMakeLists.txt"
@@ -70,7 +75,9 @@ def _test_completion(
     return client.lsp.send_request(COMPLETION, params).result(timeout=CALL_TIMEOUT)
 
 
-def test_initialize(client_server, datadir):
+def test_initialize(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     client, server = client_server
 
     assert server._api is None
@@ -78,7 +85,9 @@ def test_initialize(client_server, datadir):
     assert server._api is not None
 
 
-def test_completions_invoked(client_server, datadir):
+def test_completions_invoked(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     response = _test_completion(
         client_server,
         datadir,
@@ -90,14 +99,18 @@ def test_completions_invoked(client_server, datadir):
     assert "<PROJECT-NAME>" in item.documentation
 
 
-def test_completions_nocontext(client_server, datadir):
+def test_completions_nocontext(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     response = _test_completion(client_server, datadir, "projec", None)
     item = next(filter(lambda x: x.label == "project", response.items), None)
     assert item is not None
     assert "<PROJECT-NAME>" in item.documentation
 
 
-def test_completions_triggercharacter_variable(client_server, datadir):
+def test_completions_triggercharacter_variable(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     response = _test_completion(
         client_server,
         datadir,
@@ -110,7 +123,9 @@ def test_completions_triggercharacter_variable(client_server, datadir):
     assert response == response_nocontext
 
 
-def test_completions_triggercharacter_module(client_server, datadir):
+def test_completions_triggercharacter_module(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     response = _test_completion(
         client_server,
         datadir,
@@ -123,7 +138,9 @@ def test_completions_triggercharacter_module(client_server, datadir):
     assert response == response_nocontext
 
 
-def test_completions_triggercharacter_package(client_server, datadir):
+def test_completions_triggercharacter_package(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     response = _test_completion(
         client_server,
         datadir,
@@ -136,7 +153,9 @@ def test_completions_triggercharacter_package(client_server, datadir):
     assert response == response_nocontext
 
 
-def test_formatting(client_server, datadir):
+def test_formatting(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     client, server = client_server
     _init(client, datadir)
     path = datadir / "CMakeLists.txt"
@@ -150,7 +169,9 @@ def test_formatting(client_server, datadir):
     assert response[0].newText == "a(b c)\n"
 
 
-def test_hover(client_server, datadir):
+def test_hover(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
     client, server = client_server
     _init(client, datadir)
     path = datadir / "CMakeLists.txt"
