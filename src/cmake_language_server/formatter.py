@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from .parser import TokenList
 
@@ -7,7 +7,7 @@ class Formatter(object):
     indent: str
     lower_identifier: bool
 
-    def __init__(self, indent="  ", lower_identifier=True):
+    def __init__(self, indent: str = "  ", lower_identifier: bool = True):
         self.indent = indent
         self.lower_identifier = lower_identifier
 
@@ -94,7 +94,7 @@ class Formatter(object):
         return ret
 
 
-def main(args: List[str] = None):
+def main(argss: Optional[List[str]] = None) -> None:
     import sys
     from argparse import ArgumentParser
     from difflib import unified_diff
@@ -117,7 +117,7 @@ def main(args: List[str] = None):
         "--version", action="version", version=f"%(prog)s {__version__}"
     )
 
-    args = parser.parse_args(args)
+    args = parser.parse_args(argss)
 
     if not args.lists and args.inplace:
         print("error: cannot use -i when no arguments are specified.", file=sys.stderr)

@@ -1,13 +1,16 @@
 import sys
 from contextlib import contextmanager
 from io import StringIO
+from pathlib import Path
+from typing import Callable, Iterator
 
 from cmake_language_server.formatter import Formatter, main
 from cmake_language_server.parser import ListParser
+from pytest import CaptureFixture
 
 
-def make_formatter_test(liststr: str, expect: str):
-    def test():
+def make_formatter_test(liststr: str, expect: str) -> Callable[[], None]:
+    def test() -> None:
         tokens, remain = ListParser().parse(liststr)
         actual = Formatter().format(tokens)
         assert actual == expect
@@ -88,14 +91,14 @@ endif()
 
 
 @contextmanager
-def mock_stdin(buf: str):
+def mock_stdin(buf: str) -> Iterator[None]:
     stdin = sys.stdin
     sys.stdin = StringIO(buf)
     yield
     sys.stdin = stdin
 
 
-def test_main_stdin(capsys):
+def test_main_stdin(capsys: CaptureFixture[str]) -> None:
     with mock_stdin(" a()"):
         main([])
     captured = capsys.readouterr()
@@ -103,7 +106,7 @@ def test_main_stdin(capsys):
     assert captured.err == ""
 
 
-def test_main_stdin_diff(capsys):
+def test_main_stdin_diff(capsys: CaptureFixture[str]) -> None:
     with mock_stdin(" a()"):
         main(["-d"])
     captured = capsys.readouterr()
@@ -112,7 +115,7 @@ def test_main_stdin_diff(capsys):
     assert captured.err == ""
 
 
-def test_main_file_1(capsys, tmp_path):
+def test_main_file_1(capsys: CaptureFixture[str], tmp_path: Path) -> None:
     testfile1 = tmp_path / "list1.cmake"
     with testfile1.open("w") as fp:
         fp.write(" a()")
@@ -123,7 +126,7 @@ def test_main_file_1(capsys, tmp_path):
     assert captured.err == ""
 
 
-def test_main_file_2(capsys, tmp_path):
+def test_main_file_2(capsys: CaptureFixture[str], tmp_path: Path) -> None:
     testfile1 = tmp_path / "list1.cmake"
     with testfile1.open("w") as fp:
         fp.write(" a()")
@@ -137,7 +140,7 @@ def test_main_file_2(capsys, tmp_path):
     assert captured.err == ""
 
 
-def test_main_inplace(capsys, tmp_path):
+def test_main_inplace(capsys: CaptureFixture[str], tmp_path: Path) -> None:
     testfile1 = tmp_path / "list1.cmake"
     with testfile1.open("w") as fp:
         fp.write(" a()")
@@ -152,7 +155,7 @@ def test_main_inplace(capsys, tmp_path):
     assert content == "a()\n"
 
 
-def test_main_diff(capsys, tmp_path):
+def test_main_diff(capsys: CaptureFixture[str], tmp_path: Path) -> None:
     testfile1 = tmp_path / "list1.cmake"
     with testfile1.open("w") as fp:
         fp.write(" a()")

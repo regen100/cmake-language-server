@@ -10,7 +10,7 @@ TokenList = List[TokenType]
 class ListParser(object):
     _parser: pp.ParserElement
 
-    def __init__(self):
+    def __init__(self) -> None:
         newline = "\n"
         space_plus = pp.Regex("[ \t]+")
         space_star = pp.Optional(space_plus)
@@ -20,7 +20,7 @@ class ListParser(object):
 
         bracket_content = pp.Forward()
 
-        def action_bracket_open(tokens: pp.ParseResults):
+        def action_bracket_open(tokens: pp.ParseResults) -> None:
             nonlocal bracket_content
             marker = "]" + "=" * (len(tokens[0]) - 2) + "]"
             bracket_content <<= pp.SkipTo(marker, include=True)

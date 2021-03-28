@@ -25,7 +25,7 @@ class API(object):
     _uuid: uuid.UUID
     _builtin_commands: Dict[str, str]
     _builtin_variables: Dict[str, str]
-    _builtin_variable_template: Dict[Pattern, str]
+    _builtin_variable_template: Dict[Pattern[str], str]
     _builtin_modules: Dict[str, str]
     _targets: List[str]
     _cached_variables: Dict[str, str]
@@ -45,11 +45,11 @@ class API(object):
         self._generated_list_parsed = False
 
     def query(self) -> bool:
-        """ Use CMake's file API to get JSON information about the build tree
+        """Use CMake's file API to get JSON information about the build tree
 
-            Generates a JSON request file for the current build tree and runs
-            CMake on the build tree. Deletes the request file immediately
-            after.
+        Generates a JSON request file for the current build tree and runs
+        CMake on the build tree. Deletes the request file immediately
+        after.
         """
         if not self.cmake_cache.exists():
             return False
@@ -83,10 +83,10 @@ class API(object):
         return True
 
     def read_reply(self) -> bool:
-        """ Reads the CMake file API reply file and updates internal state
+        """Reads the CMake file API reply file and updates internal state
 
-            Reads the result of the previous query file and updates
-            the targets, the cache entries and the cmake files.
+        Reads the result of the previous query file and updates
+        the targets, the cache entries and the cmake files.
         """
         reply = self._build / ".cmake" / "api" / "v1" / "reply"
         indices = sorted(reply.glob("index-*.json"))
@@ -112,13 +112,13 @@ class API(object):
 
         return True
 
-    def _read_codemodel(self, codemodelpath: Path):
+    def _read_codemodel(self, codemodelpath: Path) -> None:
         with (codemodelpath).open() as fp:
             codemodel = json.load(fp)
         config = codemodel["configurations"][0]
         self._targets[:] = [x["name"] for x in config["targets"]]
 
-    def _read_cache(self, cachepath: Path):
+    def _read_cache(self, cachepath: Path) -> None:
         with cachepath.open() as fp:
             cache = json.load(fp)
         self._cached_variables.clear()
@@ -134,7 +134,7 @@ class API(object):
                 doc.append(f"`{value}`")
             self._cached_variables[name] = "\n\n".join(doc)
 
-    def _read_cmake_files(self, jsonpath: Path):
+    def _read_cmake_files(self, jsonpath: Path) -> None:
         """inspect CMake list files that are used during build generation"""
 
         if not self._builtin_variables or self._generated_list_parsed:
@@ -214,10 +214,10 @@ endforeach()
         self._parse_modules()
 
     def _parse_commands(self) -> None:
-        """ Load docs for builtin cmake functions
+        """Load docs for builtin cmake functions
 
-            Loads the documentation for builtin cmake functions from the result
-            of `$ cmake --help-commands`.
+        Loads the documentation for builtin cmake functions from the result
+        of `$ cmake --help-commands`.
         """
         p = subprocess.run(
             [self._cmake, "--help-commands"],
@@ -247,10 +247,10 @@ endforeach()
             self._builtin_commands[command] = "```cmake\n" + signature + "\n```"
 
     def _parse_variables(self) -> None:
-        """ Load docs for builtin cmake variables
+        """Load docs for builtin cmake variables
 
-            Loads the documentation for builtin cmake variables from
-            the result of `$ cmake --help-variables`.
+        Loads the documentation for builtin cmake variables from
+        the result of `$ cmake --help-variables`.
         """
         p = subprocess.run(
             [self._cmake, "--help-variables"],
@@ -286,10 +286,10 @@ endforeach()
                 self._builtin_variables[variable] = doc
 
     def _parse_modules(self) -> None:
-        """ Loads docs for all modules in the cmake distribution
+        """Loads docs for all modules in the cmake distribution
 
-            Loads the documentation for cmake modules included in the
-            distribution from the result of `$ cmake --help-modules`.
+        Loads the documentation for cmake modules included in the
+        distribution from the result of `$ cmake --help-modules`.
         """
         p = subprocess.run(
             [self._cmake, "--help-modules"],
@@ -316,7 +316,7 @@ endforeach()
             module = match.group("module")
             header = match.group("header")
             doc = _tidy_doc(match.group("doc"))
-            if header is not None and header != "Overview":
+            if header != "Overview":
                 doc = ""
             self._builtin_modules[module] = doc
 
