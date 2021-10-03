@@ -306,7 +306,7 @@ endforeach()
 (?P<module>.+)\n
 -+\n+?
 (?:(?P<header>\w[\w\s]+)\n\^+\n+?)?
-(?P<doc>.(?:.|\n)+?\n\n)
+(?P<doc>(?:.|\n)*?\n\n)
 """,
             p.stdout + "\n\n",
             re.VERBOSE,
