@@ -21,6 +21,7 @@ classifiers = [
 python = "^3.6"
 pygls = "^0.10"
 pyparsing = "^2.4"
+importlib-metadata = {version = "^4.8", python = "<3.8"}
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2"
