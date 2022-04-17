@@ -117,7 +117,7 @@ class CMakeLanguageServer(LanguageServer):
                 targets = self._api.search_target(token)
                 items.extend(
                     CompletionItem(
-                        lable=x, kind=CompletionItemKind.Class, insert_text=x
+                        label=x, kind=CompletionItemKind.Class, insert_text=x
                     )
                     for x in targets
                 )
