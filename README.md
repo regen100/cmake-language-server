@@ -17,7 +17,7 @@ Alpha Stage, work in progress.
 ## Commands
 
 - `cmake-language-server`: LSP server
-- `cmake-format`: CLI frontend for formatting
+- `python -m cmake_language_server.formatter`: CLI frontend for formatting
 
 ## Installation
 

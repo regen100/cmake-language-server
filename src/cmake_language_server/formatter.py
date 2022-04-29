@@ -154,3 +154,7 @@ def main(argss: Optional[List[str]] = None) -> None:
             print(diffstr, end="")
         else:
             print(formatted, end="")
+
+
+if __name__ == "__main__":
+    main()
