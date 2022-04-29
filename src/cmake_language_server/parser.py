@@ -44,9 +44,12 @@ class ListParser(object):
 
         identifier = pp.Word(pp.alphas + "_", pp.alphanums + "_")
         arguments = pp.Forward()
-        arguments << pp.ZeroOrMore(
-            argument | line_ending | space_plus | "(" + arguments + ")"
-        ).leaveWhitespace()
+        (
+            arguments
+            << pp.ZeroOrMore(
+                argument | line_ending | space_plus | "(" + arguments + ")"
+            ).leaveWhitespace()
+        )
         arguments = pp.Group(arguments)
         PAREN_L, PAREN_R = map(pp.Suppress, "()")
         command_invocation = (

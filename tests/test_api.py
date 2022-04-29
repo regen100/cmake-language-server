@@ -39,12 +39,14 @@ def test_read_cmake_files(cmake_build: Path) -> None:
     import platform
 
     system = platform.system()
+    cxx = api.get_variable_doc("CMAKE_CXX_COMPILER_ID")
+    assert cxx is not None
     if system == "Linux":
-        assert "GNU" in api.get_variable_doc("CMAKE_CXX_COMPILER_ID")
+        assert "GNU" in cxx
     elif system == "Windows":
-        assert "MSVC" in api.get_variable_doc("CMAKE_CXX_COMPILER_ID")
+        assert "MSVC" in cxx
     elif system == "Darwin":
-        assert "Clang" in api.get_variable_doc("CMAKE_CXX_COMPILER_ID")
+        assert "Clang" in cxx
     else:
         raise RuntimeError("Unexpected system")
 
@@ -64,7 +66,8 @@ def test_parse_commands(cmake_build: Path) -> None:
     for command in commands:
         assert api.get_command_doc(command) is not None, f"{command} not found"
 
-    assert "break()" in api.get_command_doc("break")
+    break_doc = api.get_command_doc("break")
+    assert break_doc is not None and "break()" in break_doc
     assert api.get_command_doc("not_existing_command") is None
 
 
