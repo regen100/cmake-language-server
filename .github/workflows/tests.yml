@@ -6,9 +6,10 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.6", "3.7", "3.8", "3.9", "3.10"]
-        os: [ubuntu-18.04, windows-2016]
+        os: [ubuntu-18.04, windows-2019]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python }}
@@ -33,6 +34,8 @@ jobs:
       - name: Test with tox
         run: |
           tox
+        env:
+          os: ${{ matrix.os }}
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v1
         with:
