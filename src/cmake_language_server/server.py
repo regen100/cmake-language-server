@@ -1,5 +1,7 @@
 import logging
 import re
+import shutil
+import subprocess
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple
 
@@ -32,20 +34,16 @@ from pygls.lsp.types import (
 from pygls.server import LanguageServer
 
 from .api import API
-from .formatter import Formatter
-from .parser import ListParser
 
 logger = logging.getLogger(__name__)
 
 
 class CMakeLanguageServer(LanguageServer):
-    _parser: ListParser
     _api: Optional[API]
 
     def __init__(self, *args: Any) -> None:
         super().__init__(*args)
 
-        self._parser = ListParser()
         self._api = None
 
         @self.feature(INITIALIZE)
@@ -151,26 +149,30 @@ class CMakeLanguageServer(LanguageServer):
 
             return CompletionList(is_incomplete=False, items=items)
 
-        @self.feature(FORMATTING)
-        def formatting(params: DocumentFormattingParams) -> Optional[List[TextEdit]]:
-            doc = self.workspace.get_document(params.text_document.uri)
-            content = doc.source
-            tokens, remain = self._parser.parse(content)
-            if remain:
-                self.show_message("CMake parser failed")
-                return None
+        if shutil.which("cmake-format") is not None:
 
-            formatted = Formatter().format(tokens)
-            lines = content.count("\n")
-            return [
-                TextEdit(
-                    range=Range(
-                        start=Position(line=0, character=0),
-                        end=Position(line=lines + 1, character=0),
-                    ),
-                    new_text=formatted,
+            @self.feature(FORMATTING)
+            def formatting(
+                params: DocumentFormattingParams,
+            ) -> Optional[List[TextEdit]]:
+                doc = self.workspace.get_document(params.text_document.uri)
+                content = doc.source
+                formatted = subprocess.check_output(
+                    ["cmake-format", "-"],
+                    cwd=str(Path(doc.path).parent),
+                    input=content,
+                    universal_newlines=True,
                 )
-            ]
+                lines = content.count("\n")
+                return [
+                    TextEdit(
+                        range=Range(
+                            start=Position(line=0, character=0),
+                            end=Position(line=lines + 1, character=0),
+                        ),
+                        new_text=formatted,
+                    )
+                ]
 
         @self.feature(HOVER)
         def hover(params: TextDocumentPositionParams) -> Optional[Hover]:
