@@ -12,12 +12,11 @@ Alpha Stage, work in progress.
 ## Features
 - [x] Builtin command completion
 - [x] Documentation for commands and variables on hover
-- [x] Formatting
+- [x] Formatting (by [`cmake-format`](https://github.com/cheshirekow/cmake_format))
 
 ## Commands
 
 - `cmake-language-server`: LSP server
-- `python -m cmake_language_server.formatter`: CLI frontend for formatting
 
 ## Installation
 
