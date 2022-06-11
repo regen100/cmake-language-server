@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmake-language-server"
-version = "0.1.4"
+version = "0.1.5"
 description = "CMake LSP Implementation"
 license = "MIT"
 authors = ["regen"]
