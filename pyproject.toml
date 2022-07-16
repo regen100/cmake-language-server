@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cmake-language-server"
-version = "0.1.5"
+version = "0.1.6"
 description = "CMake LSP Implementation"
 license = "MIT"
 authors = ["regen"]
@@ -18,8 +18,8 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6"
-pygls = "^0.11"
+python = "^3.7,<3.11"
+pygls = "^0.12"
 importlib-metadata = {version = "^4.8", python = "<3.8"}
 
 [tool.poetry.dev-dependencies]
@@ -45,7 +45,7 @@ enable_isort = true
 enable_mypy = true
 mypy_preset = "strict"
 line_length = 88
-py_version = "py36"
+py_version = "py37"
 
 [[tool.pysen.lint.mypy_targets]]
 paths = ["."]
