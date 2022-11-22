@@ -52,12 +52,12 @@ class CMakeLanguageServer(LanguageServer):
 
             cmake = (
                 opts["cmakeExecutable"]
-                if dict == type(opts) and "cmakeExecutable" in opts
+                if type(opts) == dict and "cmakeExecutable" in opts
                 else getattr(opts, "cmakeExecutable", "cmake")
             )
             builddir = (
                 opts["buildDirectory"]
-                if dict == type(opts) and "buildDirectory" in opts
+                if type(opts) == dict and "buildDirectory" in opts
                 else getattr(opts, "buildDirectory", "")
             )
             logging.info(f"cmakeExecutable={cmake}, buildDirectory={builddir}")
