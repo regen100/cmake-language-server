@@ -2,7 +2,6 @@ from concurrent import futures
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-from cmake_language_server.server import CMakeLanguageServer
 from pygls.lsp.methods import (
     COMPLETION,
     FORMATTING,
@@ -25,6 +24,8 @@ from pygls.lsp.types import (
     TextDocumentPositionParams,
 )
 from pygls.server import LanguageServer
+
+from cmake_language_server.server import CMakeLanguageServer
 
 CALL_TIMEOUT = 2
 

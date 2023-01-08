@@ -1,16 +1,16 @@
 import asyncio
 import logging
 import os
-import pprint
 from pathlib import Path
 from subprocess import PIPE, run
 from threading import Thread
 from typing import Iterable, Tuple
 
 import pytest
-from cmake_language_server.server import CMakeLanguageServer
 from pygls.lsp.methods import EXIT
 from pygls.server import LanguageServer
+
+from cmake_language_server.server import CMakeLanguageServer
 
 
 @pytest.fixture()
@@ -26,7 +26,6 @@ def cmake_build(shared_datadir: Path) -> Iterable[Path]:
         universal_newlines=True,
     )
     if p.returncode != 0:
-        logging.error("env:\n" + pprint.pformat(os.environ))
         logging.error("stdout:\n" + p.stdout)
         logging.error("stderr:\n" + p.stderr)
         raise RuntimeError("CMake failed")
