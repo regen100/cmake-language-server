@@ -1,51 +1,62 @@
-[tool.poetry]
+[project]
 name = "cmake-language-server"
-version = "0.1.6"
+dynamic = ["version"]
 description = "CMake LSP Implementation"
-license = "MIT"
-authors = ["regen"]
+authors = [
+    {name = "Regen"},
+]
+dependencies = [
+    "pygls>=0.12.2",
+]
+requires-python = ">=3.7"
 readme = "README.md"
-repository = "https://github.com/regen100/cmake-language-server"
+license = {text = "MIT"}
 keywords = ["cmake", "completion", "vim", "lsp"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
-    "Environment :: Console",
+    "Development Status :: 3 - Alpha", "Environment :: Console",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Topic :: Software Development",
-    "Topic :: Text Editors :: Integrated Development Environments (IDE)",
-    "Topic :: Utilities"
+    "Topic :: Text Editors :: Integrated Development Environments (IDE)", "Topic :: Utilities",
 ]
 
-[tool.poetry.dependencies]
-python = "^3.7,<3.11"
-pygls = "^0.12"
-importlib-metadata = {version = "^4.8", python = "<3.8"}
+[project.urls]
+repository = "https://github.com/regen100/cmake-language-server"
 
-[tool.poetry.dev-dependencies]
-pytest = "^6.2"
-pytest-datadir = "^1.3"
-pytest-cov = "^2.11"
-cmakelang = "^0.6.13"
-
-[tool.poetry.scripts]
+[project.scripts]
 cmake-language-server = "cmake_language_server.server:main"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"
 
-[tool.pysen]
-version = "0.10"
+[tool.pdm.version]
+source = "scm"
+write_to = "cmake_language_server/version.py"
+write_template = "__version__ = '{}'"
 
-[tool.pysen.lint]
-enable_black = true
-enable_flake8 = true
-enable_isort = true
-enable_mypy = true
-mypy_preset = "strict"
-line_length = 88
-py_version = "py37"
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest>=7.2.0",
+    "pytest-datadir>=1.4.1",
+    "pytest-cov>=4.0.0",
+    "cmakelang>=0.6.13",
+    "tox-pdm>=0.6.1",
+]
+lint = [
+    "mypy>=0.991",
+    "flake8>=3.9.2",
+    "black>=22.12.0",
+    "isort>=5.11.4",
+]
 
-[[tool.pysen.lint.mypy_targets]]
-paths = ["."]
+[tool.pdm.scripts]
+test = "pytest --cov-report=term --cov-report=xml --cov=cmake_language_server -sv tests"
+
+[tool.pdm.scripts.lint]
+shell = """
+    isort --check cmake_language_server tests
+    black --check cmake_language_server tests
+    flake8 cmake_language_server tests
+    mypy cmake_language_server tests
+"""

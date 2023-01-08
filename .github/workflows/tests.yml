@@ -13,28 +13,33 @@ jobs:
       fail-fast: false
       matrix:
         python: ["3.7", "3.8", "3.9", "3.10"]
-        os: [ubuntu-18.04, windows-2019]
+        os: [ubuntu-22.04, windows-2022]
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+      - name: Set up PDM
+        uses: pdm-project/setup-pdm@v3
+        with:
+          python-version: ${{ matrix.python }}
+          cache: true
       - name: Setup VC
         uses: ilammy/msvc-dev-cmd@v1
         if: contains(matrix.os, 'windows')
       - name: Install CMake
         if: contains(matrix.os, 'ubuntu')
         run: |
-          CMAKE_VERSION=3.17.3
-          curl -sSL https://github.com/Kitware/CMake/releases/download/v$CMAKE_VERSION/cmake-$CMAKE_VERSION-Linux-x86_64.tar.gz | tar xz
-          sudo cp -rT cmake-$CMAKE_VERSION-Linux-x86_64 /usr/local
-          rm -rf cmake-$CMAKE_VERSION-Linux-x86_64
+          CMAKE_VERSION=3.25.1
+          curl -sSL https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-x86_64.tar.gz | tar xz
+          sudo cp -rT cmake-${CMAKE_VERSION}-linux-x86_64 /usr/local
       - name: Install dependencies
         run: |
           cmake --version
           python -m pip install --upgrade setuptools pip wheel
-          python -m pip install poetry tox-gh-actions
+          python -m pip install tox tox-gh-actions tox-pdm
       - name: Test with tox
         run: |
           tox
