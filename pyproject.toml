@@ -6,9 +6,9 @@ authors = [
     {name = "Regen"},
 ]
 dependencies = [
-    "pygls>=0.12.2",
+    "pygls>=1.0.0",
 ]
-requires-python = ">=3.7"
+requires-python = ">=3.7,<3.12"
 readme = "README.md"
 license = {text = "MIT"}
 keywords = ["cmake", "completion", "vim", "lsp"]
@@ -41,11 +41,10 @@ dev = [
     "pytest-datadir>=1.4.1",
     "pytest-cov>=4.0.0",
     "cmakelang>=0.6.13",
-    "tox-pdm>=0.6.1",
 ]
 lint = [
     "mypy>=0.991",
-    "flake8>=3.9.2",
+    "flake8>=5.0.4",
     "black>=22.12.0",
     "isort>=5.11.4",
 ]

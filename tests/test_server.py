@@ -1,27 +1,27 @@
 from concurrent import futures
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import Optional, Tuple
 
-from pygls.lsp.methods import (
-    COMPLETION,
-    FORMATTING,
-    HOVER,
+import pytest
+from lsprotocol.types import (
     INITIALIZE,
+    TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DID_OPEN,
-)
-from pygls.lsp.types import (
+    TEXT_DOCUMENT_FORMATTING,
+    TEXT_DOCUMENT_HOVER,
     ClientCapabilities,
     CompletionContext,
+    CompletionList,
     CompletionParams,
     CompletionTriggerKind,
     DidOpenTextDocumentParams,
     DocumentFormattingParams,
     FormattingOptions,
+    HoverParams,
     InitializeParams,
     Position,
     TextDocumentIdentifier,
     TextDocumentItem,
-    TextDocumentPositionParams,
 )
 from pygls.server import LanguageServer
 
@@ -50,8 +50,7 @@ def _init(client: LanguageServer, root: Path) -> None:
 
 def _open(client: LanguageServer, path: Path, text: Optional[str] = None) -> None:
     if text is None:
-        with open(path) as fp:
-            text = fp.read()
+        text = path.read_text()
 
     client.lsp.notify(
         TEXT_DOCUMENT_DID_OPEN,
@@ -68,7 +67,7 @@ def _test_completion(
     datadir: Path,
     content: str,
     context: Optional[CompletionContext],
-) -> Dict[str, Any]:
+) -> CompletionList:
     client, server = client_server
     _init(client, datadir)
     path = datadir / "CMakeLists.txt"
@@ -78,11 +77,10 @@ def _test_completion(
         position=Position(line=0, character=len(content)),
         context=context,
     )
-    if context is None:
-        # some clients do not send context
-        del params.context
-    ret = client.lsp.send_request(COMPLETION, params).result(timeout=CALL_TIMEOUT)
-    assert isinstance(ret, dict)
+    ret = client.lsp.send_request(TEXT_DOCUMENT_COMPLETION, params).result(
+        timeout=CALL_TIMEOUT
+    )
+    assert isinstance(ret, CompletionList)
     return ret
 
 
@@ -96,79 +94,43 @@ def test_initialize(
     assert server._api is not None
 
 
-def test_completions_invoked(
-    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+@pytest.mark.parametrize(
+    "context", [CompletionContext(trigger_kind=CompletionTriggerKind.Invoked), None]
+)
+def test_completions(
+    context: Optional[CompletionContext],
+    client_server: Tuple[LanguageServer, CMakeLanguageServer],
+    datadir: Path,
 ) -> None:
-    response = _test_completion(
-        client_server,
-        datadir,
-        "projec",
-        CompletionContext(trigger_kind=CompletionTriggerKind.Invoked),
-    )
-    item = next(filter(lambda x: x["label"] == "project", response["items"]), None)
+    response = _test_completion(client_server, datadir, "projec", context)
+    item = next(filter(lambda x: x.label == "project", response.items), None)
     assert item is not None
-    assert isinstance(item["documentation"], str)
-    assert "<PROJECT-NAME>" in item["documentation"]
+    assert isinstance(item.documentation, str)
+    assert "<PROJECT-NAME>" in item.documentation
 
 
-def test_completions_nocontext(
-    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
-) -> None:
-    response = _test_completion(client_server, datadir, "projec", None)
-    item = next(filter(lambda x: x["label"] == "project", response["items"]), None)
-    assert item is not None
-    assert isinstance(item["documentation"], str)
-    assert "<PROJECT-NAME>" in item["documentation"]
-
-
-def test_completions_triggercharacter_variable(
-    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+@pytest.mark.parametrize(
+    "text, item",
+    [("find_package(", "Boost"), ("include(", "GoogleTest"), ("${", "PROJECT_VERSION")],
+)
+def test_completions_triggercharacter(
+    text: str,
+    item: str,
+    client_server: Tuple[LanguageServer, CMakeLanguageServer],
+    datadir: Path,
 ) -> None:
     response = _test_completion(
         client_server,
         datadir,
-        "${",
+        text,
         CompletionContext(
-            trigger_kind=CompletionTriggerKind.TriggerCharacter, trigger_character="{"
+            trigger_kind=CompletionTriggerKind.TriggerCharacter,
+            trigger_character=text[-1],
         ),
     )
-    assert "PROJECT_VERSION" in [x["label"] for x in response["items"]]
+    assert item in [x.label for x in response.items]
 
-    response_nocontext = _test_completion(client_server, datadir, "${", None)
-    assert response == response_nocontext
-
-
-def test_completions_triggercharacter_module(
-    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
-) -> None:
-    response = _test_completion(
-        client_server,
-        datadir,
-        "include(",
-        CompletionContext(
-            trigger_kind=CompletionTriggerKind.TriggerCharacter, trigger_character="("
-        ),
-    )
-    assert "GoogleTest" in [x["label"] for x in response["items"]]
-
-    response_nocontext = _test_completion(client_server, datadir, "include(", None)
-    assert response == response_nocontext
-
-
-def test_completions_triggercharacter_package(
-    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
-) -> None:
-    response = _test_completion(
-        client_server,
-        datadir,
-        "find_package(",
-        CompletionContext(
-            trigger_kind=CompletionTriggerKind.TriggerCharacter, trigger_character="("
-        ),
-    )
-    assert "Boost" in [x["label"] for x in response["items"]]
-
-    response_nocontext = _test_completion(client_server, datadir, "find_package(", None)
+    response_nocontext = _test_completion(client_server, datadir, text, None)
     assert response == response_nocontext
 
 
@@ -180,13 +142,13 @@ def test_formatting(
     path = datadir / "CMakeLists.txt"
     _open(client, path, "a ( b c ) ")
     response = client.lsp.send_request(
-        FORMATTING,
+        TEXT_DOCUMENT_FORMATTING,
         DocumentFormattingParams(
             text_document=TextDocumentIdentifier(uri=path.as_uri()),
             options=FormattingOptions(tab_size=2, insert_spaces=True),
         ),
     ).result(timeout=CALL_TIMEOUT)
-    assert response[0]["newText"] == "a(b c)\n"
+    assert response[0].new_text == "a(b c)\n"
 
 
 def test_hover(
@@ -197,10 +159,10 @@ def test_hover(
     path = datadir / "CMakeLists.txt"
     _open(client, path, "project()")
     response = client.lsp.send_request(
-        HOVER,
-        TextDocumentPositionParams(
+        TEXT_DOCUMENT_HOVER,
+        HoverParams(
             text_document=TextDocumentIdentifier(uri=path.as_uri()),
             position=Position(line=0, character=0),
         ),
     ).result(timeout=CALL_TIMEOUT)
-    assert "<PROJECT-NAME>" in response["contents"]["value"]
+    assert "<PROJECT-NAME>" in response.contents.value
