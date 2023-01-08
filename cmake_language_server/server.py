@@ -5,15 +5,14 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple
 
-from pygls.lsp.methods import (
-    COMPLETION,
-    FORMATTING,
-    HOVER,
+from lsprotocol.types import (
+    ALL_TYPES_MAP,
     INITIALIZE,
     INITIALIZED,
+    TEXT_DOCUMENT_COMPLETION,
     TEXT_DOCUMENT_DID_SAVE,
-)
-from pygls.lsp.types import (
+    TEXT_DOCUMENT_FORMATTING,
+    TEXT_DOCUMENT_HOVER,
     CompletionItem,
     CompletionItemKind,
     CompletionList,
@@ -38,6 +37,10 @@ from .api import API
 logger = logging.getLogger(__name__)
 
 
+# fix pygls bug
+ALL_TYPES_MAP["TextDocumentSaveOptions"] = TextDocumentSaveRegistrationOptions
+
+
 class CMakeLanguageServer(LanguageServer):
     _api: Optional[API]
 
@@ -60,7 +63,8 @@ class CMakeLanguageServer(LanguageServer):
         trigger_characters = ["{", "("]
 
         @self.feature(
-            COMPLETION, CompletionOptions(trigger_characters=trigger_characters)
+            TEXT_DOCUMENT_COMPLETION,
+            CompletionOptions(trigger_characters=trigger_characters),
         )
         def completions(params: CompletionParams) -> CompletionList:
             assert self._api is not None
@@ -151,7 +155,7 @@ class CMakeLanguageServer(LanguageServer):
 
         if shutil.which("cmake-format") is not None:
 
-            @self.feature(FORMATTING)
+            @self.feature(TEXT_DOCUMENT_FORMATTING)
             def formatting(
                 params: DocumentFormattingParams,
             ) -> Optional[List[TextEdit]]:
@@ -174,7 +178,7 @@ class CMakeLanguageServer(LanguageServer):
                     )
                 ]
 
-        @self.feature(HOVER)
+        @self.feature(TEXT_DOCUMENT_HOVER)
         def hover(params: TextDocumentPositionParams) -> Optional[Hover]:
             assert self._api is not None
             api = self._api
@@ -256,4 +260,4 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO)
     logging.getLogger("pygls").setLevel(logging.WARNING)
-    CMakeLanguageServer().start_io()  # type: ignore
+    CMakeLanguageServer("cmake-language-server", __version__).start_io()  # type: ignore

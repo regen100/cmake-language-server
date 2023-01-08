@@ -39,7 +39,7 @@ jobs:
         run: |
           cmake --version
           python -m pip install --upgrade setuptools pip wheel
-          python -m pip install tox tox-gh-actions tox-pdm
+          python -m pip install tox tox-gh-actions
       - name: Test with tox
         run: |
           tox

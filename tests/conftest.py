@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import os
 from pathlib import Path
@@ -7,7 +6,7 @@ from threading import Thread
 from typing import Iterable, Tuple
 
 import pytest
-from pygls.lsp.methods import EXIT
+from lsprotocol.types import EXIT, SHUTDOWN
 from pygls.server import LanguageServer
 
 from cmake_language_server.server import CMakeLanguageServer
@@ -38,24 +37,25 @@ def client_server() -> Iterable[Tuple[LanguageServer, CMakeLanguageServer]]:
     s2c_r, s2c_w = os.pipe()
 
     def start(ls: LanguageServer, fdr: int, fdw: int) -> None:
-        # TODO: better patch is needed
-        # disable `close()` to avoid error messages
-        close = ls.loop.close
-        ls.loop.close = lambda: None  # type: ignore
-        ls.start_io(os.fdopen(fdr, "rb"), os.fdopen(fdw, "wb"))  # type: ignore
-        ls.loop.close = close  # type: ignore
+        ls.start_io(  # type: ignore[no-untyped-call]
+            os.fdopen(fdr, "rb"), os.fdopen(fdw, "wb")
+        )
 
-    server = CMakeLanguageServer(asyncio.new_event_loop())
+    server = CMakeLanguageServer("server", "v1")
     server_thread = Thread(target=start, args=(server, c2s_r, s2c_w))
     server_thread.start()
 
-    client = LanguageServer(asyncio.new_event_loop())
+    client = LanguageServer("client", "v1")
     client_thread = Thread(target=start, args=(client, s2c_r, c2s_w))
     client_thread.start()
 
     yield client, server
 
-    client.send_notification(EXIT)
-    server.send_notification(EXIT)
-    server_thread.join()
+    # fix bug on python 3.7
+    if hasattr(client.loop, "_signal_handlers"):
+        client.loop._signal_handlers.clear()
+
+    client.lsp.send_request(SHUTDOWN)
+    client.lsp.notify(EXIT)
     client_thread.join()
+    server_thread.join()
