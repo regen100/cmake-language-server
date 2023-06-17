@@ -20,6 +20,9 @@ classifiers = [
     "Topic :: Text Editors :: Integrated Development Environments (IDE)", "Topic :: Utilities",
 ]
 
+[project.optional-dependencies]
+format = ["cmake-format"]
+
 [project.urls]
 repository = "https://github.com/regen100/cmake-language-server"
 

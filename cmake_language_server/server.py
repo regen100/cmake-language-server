@@ -1,7 +1,6 @@
 import logging
 import re
-import shutil
-import subprocess
+from contextlib import suppress
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple
 
@@ -153,7 +152,10 @@ class CMakeLanguageServer(LanguageServer):
 
             return CompletionList(is_incomplete=False, items=items)
 
-        if shutil.which("cmake-format") is not None:
+        with suppress(ImportError):
+            from cmakelang.format.__main__ import process_file, configuration
+
+            cfg = configuration.Configuration()
 
             @self.feature(TEXT_DOCUMENT_FORMATTING)
             def formatting(
@@ -161,12 +163,7 @@ class CMakeLanguageServer(LanguageServer):
             ) -> Optional[List[TextEdit]]:
                 doc = self.workspace.get_document(params.text_document.uri)
                 content = doc.source
-                formatted = subprocess.check_output(
-                    ["cmake-format", "-"],
-                    cwd=str(Path(doc.path).parent),
-                    input=content,
-                    universal_newlines=True,
-                )
+                formatted = process_file(cfg, content)[0]
                 lines = content.count("\n")
                 return [
                     TextEdit(

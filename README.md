@@ -21,7 +21,9 @@ Alpha Stage, work in progress.
 ## Installation
 
 ```bash
-$ pip install cmake-language-server
+pip install cmake-language-server
+# or
+pip install 'cmake-language-server[format]'
 ```
 
 ### Tested Clients
