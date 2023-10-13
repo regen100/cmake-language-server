@@ -27,13 +27,13 @@ repository = "https://github.com/regen100/cmake-language-server"
 cmake-language-server = "cmake_language_server.server:main"
 
 [build-system]
-requires = ["pdm-pep517>=1.0.0"]
-build-backend = "pdm.pep517.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
 
 [tool.pdm.version]
 source = "scm"
 write_to = "cmake_language_server/version.py"
-write_template = "__version__ = '{}'"
+write_template = "__version__ = \"{}\"\n"
 
 [tool.pdm.dev-dependencies]
 dev = [
