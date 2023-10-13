@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple
 
 from lsprotocol.types import (
-    ALL_TYPES_MAP,
     INITIALIZE,
     INITIALIZED,
     TEXT_DOCUMENT_COMPLETION,
@@ -26,8 +25,8 @@ from lsprotocol.types import (
     MarkupKind,
     Position,
     Range,
+    SaveOptions,
     TextDocumentPositionParams,
-    TextDocumentSaveRegistrationOptions,
     TextEdit,
 )
 from pygls.server import LanguageServer
@@ -35,10 +34,6 @@ from pygls.server import LanguageServer
 from .api import API
 
 logger = logging.getLogger(__name__)
-
-
-# fix pygls bug
-ALL_TYPES_MAP["TextDocumentSaveOptions"] = TextDocumentSaveRegistrationOptions
 
 
 class CMakeLanguageServer(LanguageServer):
@@ -159,7 +154,7 @@ class CMakeLanguageServer(LanguageServer):
             def formatting(
                 params: DocumentFormattingParams,
             ) -> Optional[List[TextEdit]]:
-                doc = self.workspace.get_document(params.text_document.uri)
+                doc = self.workspace.get_text_document(params.text_document.uri)
                 content = doc.source
                 formatted = subprocess.check_output(
                     ["cmake-format", "-"],
@@ -206,7 +201,7 @@ class CMakeLanguageServer(LanguageServer):
         @self.thread()
         @self.feature(
             TEXT_DOCUMENT_DID_SAVE,
-            TextDocumentSaveRegistrationOptions(include_text=False),
+            SaveOptions(include_text=False),
         )
         @self.feature(INITIALIZED)
         def run_cmake(*args: Any) -> None:
@@ -216,14 +211,14 @@ class CMakeLanguageServer(LanguageServer):
                 self._api.read_reply()
 
     def _cursor_function(self, uri: str, position: Position) -> Optional[str]:
-        doc = self.workspace.get_document(uri)
+        doc = self.workspace.get_text_document(uri)
         lines = doc.source.split("\n")[: position.line + 1]
         lines[-1] = lines[-1][: position.character - 1].strip()
         words = re.split(r"[\s\n()]+", "\n".join(lines))
         return words[-1] if words else None
 
     def _cursor_line(self, uri: str, position: Position) -> str:
-        doc = self.workspace.get_document(uri)
+        doc = self.workspace.get_text_document(uri)
         content = doc.source
         line = content.split("\n")[position.line]
         return str(line)
@@ -260,4 +255,4 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO)
     logging.getLogger("pygls").setLevel(logging.WARNING)
-    CMakeLanguageServer("cmake-language-server", __version__).start_io()  # type: ignore
+    CMakeLanguageServer("cmake-language-server", __version__).start_io()

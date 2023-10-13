@@ -37,9 +37,8 @@ def client_server() -> Iterable[Tuple[LanguageServer, CMakeLanguageServer]]:
     s2c_r, s2c_w = os.pipe()
 
     def start(ls: LanguageServer, fdr: int, fdw: int) -> None:
-        ls.start_io(  # type: ignore[no-untyped-call]
-            os.fdopen(fdr, "rb"), os.fdopen(fdw, "wb")
-        )
+        # start_io type hints seem to be wrong?
+        ls.start_io(os.fdopen(fdr, "rb"), os.fdopen(fdw, "wb"))  # type:ignore[arg-type]
 
     server = CMakeLanguageServer("server", "v1")
     server_thread = Thread(target=start, args=(server, c2s_r, s2c_w))
@@ -55,7 +54,7 @@ def client_server() -> Iterable[Tuple[LanguageServer, CMakeLanguageServer]]:
     if hasattr(client.loop, "_signal_handlers"):
         client.loop._signal_handlers.clear()
 
-    client.lsp.send_request(SHUTDOWN)
+    client.lsp.send_request(SHUTDOWN)  # type:ignore[no-untyped-call]
     client.lsp.notify(EXIT)
     client_thread.join()
     server_thread.join()
