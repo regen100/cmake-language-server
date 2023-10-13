@@ -6,7 +6,7 @@ groups = ["default", "dev", "lint"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:3632b3ed221f19fdbf0bffa743093bc6ea3d87d7427ed6dcbb0fc4f01fc261d7"
+content_hash = "sha256:80a5c705d477865a92cd50fa41774545541967eaa96e64bf34514c5baf4e3d6d"
 
 [[package]]
 name = "attrs"

@@ -1,3 +1,5 @@
+cmake_language_server/version.py
+
 /build/
 /dist/
 __pycache__/
@@ -7,5 +9,5 @@ __pycache__/
 .coverage
 coverage.xml
 
-.pdm.toml
+.pdm-python
 __pypackages__/
