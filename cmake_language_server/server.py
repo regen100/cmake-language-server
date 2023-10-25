@@ -92,7 +92,7 @@ class CMakeLanguageServer(LanguageServer):
                     CompletionItem(
                         label=x,
                         kind=CompletionItemKind.Function,
-                        documentation=self._api.get_command_doc(x),
+                        documentation=self._get_command_doc(x),
                         insert_text=x,
                     )
                     for x in commands
@@ -104,7 +104,7 @@ class CMakeLanguageServer(LanguageServer):
                     CompletionItem(
                         label=x,
                         kind=CompletionItemKind.Variable,
-                        documentation=self._api.get_variable_doc(x),
+                        documentation=self._get_variable_doc(x),
                         insert_text=x,
                     )
                     for x in variables
@@ -129,7 +129,7 @@ class CMakeLanguageServer(LanguageServer):
                             CompletionItem(
                                 label=x,
                                 kind=CompletionItemKind.Module,
-                                documentation=self._api.get_module_doc(x, False),
+                                documentation=self._get_module_doc(x, False),
                                 insert_text=x,
                             )
                             for x in modules
@@ -140,7 +140,7 @@ class CMakeLanguageServer(LanguageServer):
                             CompletionItem(
                                 label=x,
                                 kind=CompletionItemKind.Module,
-                                documentation=self._api.get_module_doc(x, True),
+                                documentation=self._get_module_doc(x, True),
                                 insert_text=x,
                             )
                             for x in modules
@@ -175,27 +175,21 @@ class CMakeLanguageServer(LanguageServer):
 
         @self.feature(TEXT_DOCUMENT_HOVER)
         def hover(params: TextDocumentPositionParams) -> Optional[Hover]:
-            assert self._api is not None
-            api = self._api
-
             word = self._cursor_word(params.text_document.uri, params.position, True)
             if not word:
                 return None
 
-            candidates: List[Callable[[str], Optional[str]]] = [
-                lambda x: api.get_command_doc(x.lower()),
-                lambda x: api.get_variable_doc(x),
-                lambda x: api.get_module_doc(x, False),
-                lambda x: api.get_module_doc(x, True),
+            candidates: List[Callable[[str], Optional[MarkupContent]]] = [
+                lambda x: self._get_command_doc(x.lower()),
+                lambda x: self._get_variable_doc(x),
+                lambda x: self._get_module_doc(x, False),
+                lambda x: self._get_module_doc(x, True),
             ]
             for c in candidates:
                 doc = c(word[0])
                 if doc is None:
                     continue
-                return Hover(
-                    contents=MarkupContent(kind=MarkupKind.Markdown, value=doc),
-                    range=word[1],
-                )
+                return Hover(contents=doc, range=word[1])
             return None
 
         @self.thread()
@@ -240,6 +234,21 @@ class CMakeLanguageServer(LanguageServer):
                 )
                 return word
         return None
+
+    def _get_command_doc(self, command: str) -> Optional[MarkupContent]:
+        assert self._api is not None
+        docs = self._api.get_command_doc(command)
+        return None if docs is None else MarkupContent(MarkupKind.Markdown, docs)
+
+    def _get_variable_doc(self, variable: str) -> Optional[MarkupContent]:
+        assert self._api is not None
+        docs = self._api.get_variable_doc(variable)
+        return None if docs is None else MarkupContent(MarkupKind.Markdown, docs)
+
+    def _get_module_doc(self, module: str, package: bool) -> Optional[MarkupContent]:
+        assert self._api is not None
+        docs = self._api.get_module_doc(module, package)
+        return None if docs is None else MarkupContent(MarkupKind.Markdown, docs)
 
 
 def main() -> None:

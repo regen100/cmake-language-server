@@ -19,6 +19,7 @@ from lsprotocol.types import (
     FormattingOptions,
     HoverParams,
     InitializeParams,
+    MarkupContent,
     Position,
     TextDocumentIdentifier,
     TextDocumentItem,
@@ -105,8 +106,8 @@ def test_completions(
     response = _test_completion(client_server, datadir, "projec", context)
     item = next(filter(lambda x: x.label == "project", response.items), None)
     assert item is not None
-    assert isinstance(item.documentation, str)
-    assert "<PROJECT-NAME>" in item.documentation
+    assert isinstance(item.documentation, MarkupContent)
+    assert "<PROJECT-NAME>" in item.documentation.value
 
 
 @pytest.mark.parametrize(
