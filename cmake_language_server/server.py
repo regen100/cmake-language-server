@@ -52,12 +52,14 @@ class CMakeLanguageServer(LanguageServer):
         @self.feature(INITIALIZE)
         def initialize(params: InitializeParams) -> None:
             opts = params.initialization_options
+            opts = {} if opts is None else opts
+            cmake = opts.get("cmakeExecutable", "cmake")
+            builddir = opts.get("buildDirectory", "")
+            formatProgram = opts.get("formatProgram", "cmake-format")
+            formatArgs = opts.get("formatArgs", ["-"])
+            logging.info(f"cmakeExecutable={cmake}, buildDirectory={builddir}, formatProgram={formatProgram}, formatArgs={formatArgs}")
 
-            cmake = getattr(opts, "cmakeExecutable", "cmake")
-            builddir = getattr(opts, "buildDirectory", "")
-            logging.info(f"cmakeExecutable={cmake}, buildDirectory={builddir}")
-
-            self._api = API(cmake, Path(builddir))
+            self._api = API(cmake, Path(builddir), Path(formatProgram), formatArgs)
             self._api.parse_doc()
 
         trigger_characters = ["{", "("]
@@ -153,30 +155,29 @@ class CMakeLanguageServer(LanguageServer):
 
             return CompletionList(is_incomplete=False, items=items)
 
-        if shutil.which("cmake-format") is not None:
-
-            @self.feature(TEXT_DOCUMENT_FORMATTING)
-            def formatting(
-                params: DocumentFormattingParams,
-            ) -> Optional[List[TextEdit]]:
-                doc = self.workspace.get_document(params.text_document.uri)
-                content = doc.source
-                formatted = subprocess.check_output(
-                    ["cmake-format", "-"],
-                    cwd=str(Path(doc.path).parent),
-                    input=content,
-                    universal_newlines=True,
+        @self.feature(TEXT_DOCUMENT_FORMATTING)
+        def formatting(
+            params: DocumentFormattingParams,
+        ) -> Optional[List[TextEdit]]:
+            assert self._api is not None
+            doc = self.workspace.get_document(params.text_document.uri)
+            content = doc.source
+            formatted = subprocess.check_output(
+                [self._api._formatProgram] + self._api._formatArgs,
+                cwd=str(self.workspace.root_path),
+                input=content,
+                universal_newlines=True,
+            )
+            lines = content.count("\n")
+            return [
+                TextEdit(
+                    range=Range(
+                        start=Position(line=0, character=0),
+                        end=Position(line=lines + 1, character=0),
+                    ),
+                    new_text=formatted,
                 )
-                lines = content.count("\n")
-                return [
-                    TextEdit(
-                        range=Range(
-                            start=Position(line=0, character=0),
-                            end=Position(line=lines + 1, character=0),
-                        ),
-                        new_text=formatted,
-                    )
-                ]
+            ]
 
         @self.feature(TEXT_DOCUMENT_HOVER)
         def hover(params: TextDocumentPositionParams) -> Optional[Hover]:
