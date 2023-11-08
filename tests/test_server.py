@@ -19,6 +19,7 @@ from lsprotocol.types import (
     FormattingOptions,
     HoverParams,
     InitializeParams,
+    MarkupContent,
     Position,
     TextDocumentIdentifier,
     TextDocumentItem,
@@ -34,7 +35,7 @@ def _init(client: LanguageServer, root: Path) -> None:
     retry = 3
     while retry > 0:
         try:
-            client.lsp.send_request(
+            client.lsp.send_request(  # type:ignore[no-untyped-call]
                 INITIALIZE,
                 InitializeParams(
                     process_id=1234,
@@ -77,9 +78,9 @@ def _test_completion(
         position=Position(line=0, character=len(content)),
         context=context,
     )
-    ret = client.lsp.send_request(TEXT_DOCUMENT_COMPLETION, params).result(
-        timeout=CALL_TIMEOUT
-    )
+    ret = client.lsp.send_request(  # type:ignore[no-untyped-call]
+        TEXT_DOCUMENT_COMPLETION, params
+    ).result(timeout=CALL_TIMEOUT)
     assert isinstance(ret, CompletionList)
     return ret
 
@@ -105,8 +106,8 @@ def test_completions(
     response = _test_completion(client_server, datadir, "projec", context)
     item = next(filter(lambda x: x.label == "project", response.items), None)
     assert item is not None
-    assert isinstance(item.documentation, str)
-    assert "<PROJECT-NAME>" in item.documentation
+    assert isinstance(item.documentation, MarkupContent)
+    assert "<PROJECT-NAME>" in item.documentation.value
 
 
 @pytest.mark.parametrize(
@@ -141,7 +142,7 @@ def test_formatting(
     _init(client, datadir)
     path = datadir / "CMakeLists.txt"
     _open(client, path, "a ( b c ) ")
-    response = client.lsp.send_request(
+    response = client.lsp.send_request(  # type:ignore[no-untyped-call]
         TEXT_DOCUMENT_FORMATTING,
         DocumentFormattingParams(
             text_document=TextDocumentIdentifier(uri=path.as_uri()),
@@ -158,7 +159,7 @@ def test_hover(
     _init(client, datadir)
     path = datadir / "CMakeLists.txt"
     _open(client, path, "project()")
-    response = client.lsp.send_request(
+    response = client.lsp.send_request(  # type:ignore[no-untyped-call]
         TEXT_DOCUMENT_HOVER,
         HoverParams(
             text_document=TextDocumentIdentifier(uri=path.as_uri()),

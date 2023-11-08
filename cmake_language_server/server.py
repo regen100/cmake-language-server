@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any, Callable, List, Optional, Tuple
 
 from lsprotocol.types import (
-    ALL_TYPES_MAP,
     INITIALIZE,
     INITIALIZED,
     TEXT_DOCUMENT_COMPLETION,
@@ -26,8 +25,8 @@ from lsprotocol.types import (
     MarkupKind,
     Position,
     Range,
+    SaveOptions,
     TextDocumentPositionParams,
-    TextDocumentSaveRegistrationOptions,
     TextEdit,
 )
 from pygls.server import LanguageServer
@@ -35,10 +34,6 @@ from pygls.server import LanguageServer
 from .api import API
 
 logger = logging.getLogger(__name__)
-
-
-# fix pygls bug
-ALL_TYPES_MAP["TextDocumentSaveOptions"] = TextDocumentSaveRegistrationOptions
 
 
 class CMakeLanguageServer(LanguageServer):
@@ -99,7 +94,7 @@ class CMakeLanguageServer(LanguageServer):
                     CompletionItem(
                         label=x,
                         kind=CompletionItemKind.Function,
-                        documentation=self._api.get_command_doc(x),
+                        documentation=self._get_command_doc(x),
                         insert_text=x,
                     )
                     for x in commands
@@ -111,7 +106,7 @@ class CMakeLanguageServer(LanguageServer):
                     CompletionItem(
                         label=x,
                         kind=CompletionItemKind.Variable,
-                        documentation=self._api.get_variable_doc(x),
+                        documentation=self._get_variable_doc(x),
                         insert_text=x,
                     )
                     for x in variables
@@ -136,7 +131,7 @@ class CMakeLanguageServer(LanguageServer):
                             CompletionItem(
                                 label=x,
                                 kind=CompletionItemKind.Module,
-                                documentation=self._api.get_module_doc(x, False),
+                                documentation=self._get_module_doc(x, False),
                                 insert_text=x,
                             )
                             for x in modules
@@ -147,7 +142,7 @@ class CMakeLanguageServer(LanguageServer):
                             CompletionItem(
                                 label=x,
                                 kind=CompletionItemKind.Module,
-                                documentation=self._api.get_module_doc(x, True),
+                                documentation=self._get_module_doc(x, True),
                                 insert_text=x,
                             )
                             for x in modules
@@ -160,7 +155,7 @@ class CMakeLanguageServer(LanguageServer):
             params: DocumentFormattingParams,
         ) -> Optional[List[TextEdit]]:
             assert self._api is not None
-            doc = self.workspace.get_document(params.text_document.uri)
+            doc = self.workspace.get_text_document(params.text_document.uri)
             content = doc.source
             formatted = subprocess.check_output(
                 [self._api._formatProgram] + self._api._formatArgs,
@@ -181,33 +176,27 @@ class CMakeLanguageServer(LanguageServer):
 
         @self.feature(TEXT_DOCUMENT_HOVER)
         def hover(params: TextDocumentPositionParams) -> Optional[Hover]:
-            assert self._api is not None
-            api = self._api
-
             word = self._cursor_word(params.text_document.uri, params.position, True)
             if not word:
                 return None
 
-            candidates: List[Callable[[str], Optional[str]]] = [
-                lambda x: api.get_command_doc(x.lower()),
-                lambda x: api.get_variable_doc(x),
-                lambda x: api.get_module_doc(x, False),
-                lambda x: api.get_module_doc(x, True),
+            candidates: List[Callable[[str], Optional[MarkupContent]]] = [
+                lambda x: self._get_command_doc(x.lower()),
+                lambda x: self._get_variable_doc(x),
+                lambda x: self._get_module_doc(x, False),
+                lambda x: self._get_module_doc(x, True),
             ]
             for c in candidates:
                 doc = c(word[0])
                 if doc is None:
                     continue
-                return Hover(
-                    contents=MarkupContent(kind=MarkupKind.Markdown, value=doc),
-                    range=word[1],
-                )
+                return Hover(contents=doc, range=word[1])
             return None
 
         @self.thread()
         @self.feature(
             TEXT_DOCUMENT_DID_SAVE,
-            TextDocumentSaveRegistrationOptions(include_text=False),
+            SaveOptions(include_text=False),
         )
         @self.feature(INITIALIZED)
         def run_cmake(*args: Any) -> None:
@@ -217,14 +206,14 @@ class CMakeLanguageServer(LanguageServer):
                 self._api.read_reply()
 
     def _cursor_function(self, uri: str, position: Position) -> Optional[str]:
-        doc = self.workspace.get_document(uri)
+        doc = self.workspace.get_text_document(uri)
         lines = doc.source.split("\n")[: position.line + 1]
         lines[-1] = lines[-1][: position.character - 1].strip()
         words = re.split(r"[\s\n()]+", "\n".join(lines))
         return words[-1] if words else None
 
     def _cursor_line(self, uri: str, position: Position) -> str:
-        doc = self.workspace.get_document(uri)
+        doc = self.workspace.get_text_document(uri)
         content = doc.source
         line = content.split("\n")[position.line]
         return str(line)
@@ -247,6 +236,21 @@ class CMakeLanguageServer(LanguageServer):
                 return word
         return None
 
+    def _get_command_doc(self, command: str) -> Optional[MarkupContent]:
+        assert self._api is not None
+        docs = self._api.get_command_doc(command)
+        return None if docs is None else MarkupContent(MarkupKind.Markdown, docs)
+
+    def _get_variable_doc(self, variable: str) -> Optional[MarkupContent]:
+        assert self._api is not None
+        docs = self._api.get_variable_doc(variable)
+        return None if docs is None else MarkupContent(MarkupKind.Markdown, docs)
+
+    def _get_module_doc(self, module: str, package: bool) -> Optional[MarkupContent]:
+        assert self._api is not None
+        docs = self._api.get_module_doc(module, package)
+        return None if docs is None else MarkupContent(MarkupKind.Markdown, docs)
+
 
 def main() -> None:
     from argparse import ArgumentParser
@@ -261,4 +265,4 @@ def main() -> None:
 
     logging.basicConfig(level=logging.INFO)
     logging.getLogger("pygls").setLevel(logging.WARNING)
-    CMakeLanguageServer("cmake-language-server", __version__).start_io()  # type: ignore
+    CMakeLanguageServer("cmake-language-server", __version__).start_io()
