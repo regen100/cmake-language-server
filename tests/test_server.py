@@ -1,3 +1,4 @@
+from time import sleep
 from concurrent import futures
 from pathlib import Path
 from typing import Optional, Tuple
@@ -9,11 +10,13 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_DID_OPEN,
     TEXT_DOCUMENT_FORMATTING,
     TEXT_DOCUMENT_HOVER,
+    WORKSPACE_DID_CHANGE_CONFIGURATION,
     ClientCapabilities,
     CompletionContext,
     CompletionList,
     CompletionParams,
     CompletionTriggerKind,
+    DidChangeConfigurationParams,
     DidOpenTextDocumentParams,
     DocumentFormattingParams,
     FormattingOptions,
@@ -94,6 +97,24 @@ def test_initialize(
     _init(client, datadir)
     assert server._api is not None
 
+def test_workspace_did_change_configuration(
+    client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
+) -> None:
+    client, server = client_server
+
+    _init(client, datadir)
+
+    old_api = server._api
+
+    client.lsp.notify(  # type:ignore[no-untyped-call]
+        WORKSPACE_DID_CHANGE_CONFIGURATION,
+                      DidChangeConfigurationParams(settings = {"initialization_options": {"buildDirectory": "c_build"}})
+    )
+
+    sleep(1)
+
+    assert server._api is not old_api
+    assert server._api._build.as_posix() == "c_build"
 
 @pytest.mark.parametrize(
     "context", [CompletionContext(trigger_kind=CompletionTriggerKind.Invoked), None]

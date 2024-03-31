@@ -12,12 +12,14 @@ from lsprotocol.types import (
     TEXT_DOCUMENT_DID_SAVE,
     TEXT_DOCUMENT_FORMATTING,
     TEXT_DOCUMENT_HOVER,
+    WORKSPACE_DID_CHANGE_CONFIGURATION,
     CompletionItem,
     CompletionItemKind,
     CompletionList,
     CompletionOptions,
     CompletionParams,
     CompletionTriggerKind,
+    DidChangeConfigurationParams,
     DocumentFormattingParams,
     Hover,
     InitializeParams,
@@ -46,14 +48,28 @@ class CMakeLanguageServer(LanguageServer):
 
         @self.feature(INITIALIZE)
         def initialize(params: InitializeParams) -> None:
-            opts = params.initialization_options
+            opts = params.initialization_options or {}
 
-            cmake = getattr(opts, "cmakeExecutable", "cmake")
-            builddir = getattr(opts, "buildDirectory", "")
+            cmake = opts.get("cmakeExecutable", "cmake")
+            builddir = opts.get("buildDirectory", "")
             logging.info(f"cmakeExecutable={cmake}, buildDirectory={builddir}")
 
             self._api = API(cmake, Path(builddir))
             self._api.parse_doc()
+
+        @self.feature(WORKSPACE_DID_CHANGE_CONFIGURATION)
+        def workspace_did_change_configuration(params: DidChangeConfigurationParams) -> None:
+            if opts := params.settings.get("initialization_options"):
+                cmake = opts.get("cmakeExecutable", self._api._cmake)
+                builddir = opts.get("buildDirectory", self._api._build.as_posix())
+                logging.info(f"cmakeExecutable={cmake}, buildDirectory={builddir}")
+
+                api = API(cmake, Path(builddir))
+                api.parse_doc()
+
+                self._api = api
+
+                run_cmake()
 
         trigger_characters = ["{", "("]
 
