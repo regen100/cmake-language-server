@@ -58,8 +58,12 @@ class CMakeLanguageServer(LanguageServer):
             self._api.parse_doc()
 
         @self.feature(WORKSPACE_DID_CHANGE_CONFIGURATION)
-        def workspace_did_change_configuration(params: DidChangeConfigurationParams) -> None:
-            if opts := params.settings.get("initialization_options"):
+        def workspace_did_change_configuration(
+            params: DidChangeConfigurationParams,
+        ) -> None:
+            settings = params.settings or {}
+            assert self._api is not None
+            if opts := settings.get("initialization_options"):
                 cmake = opts.get("cmakeExecutable", self._api._cmake)
                 builddir = opts.get("buildDirectory", self._api._build.as_posix())
                 logging.info(f"cmakeExecutable={cmake}, buildDirectory={builddir}")

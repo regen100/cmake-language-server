@@ -1,4 +1,4 @@
-from time import sleep
+import time
 from concurrent import futures
 from pathlib import Path
 from typing import Optional, Tuple
@@ -97,6 +97,7 @@ def test_initialize(
     _init(client, datadir)
     assert server._api is not None
 
+
 def test_workspace_did_change_configuration(
     client_server: Tuple[LanguageServer, CMakeLanguageServer], datadir: Path
 ) -> None:
@@ -106,15 +107,20 @@ def test_workspace_did_change_configuration(
 
     old_api = server._api
 
-    client.lsp.notify(  # type:ignore[no-untyped-call]
+    client.lsp.notify(
         WORKSPACE_DID_CHANGE_CONFIGURATION,
-                      DidChangeConfigurationParams(settings = {"initialization_options": {"buildDirectory": "c_build"}})
+        DidChangeConfigurationParams(
+            settings={"initialization_options": {"buildDirectory": "c_build"}}
+        ),
     )
 
-    sleep(1)
+    start = time.monotonic()
+    while server._api is old_api and (time.monotonic() - start) < CALL_TIMEOUT:
+        time.sleep(0.1)
 
-    assert server._api is not old_api
+    assert server._api is not None
     assert server._api._build.as_posix() == "c_build"
+
 
 @pytest.mark.parametrize(
     "context", [CompletionContext(trigger_kind=CompletionTriggerKind.Invoked), None]
