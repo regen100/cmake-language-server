@@ -16,13 +16,13 @@ jobs:
         os: [ubuntu-22.04, windows-2022]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - name: Set up PDM
-        uses: pdm-project/setup-pdm@v3
+        uses: pdm-project/setup-pdm@v4
         with:
           python-version: ${{ matrix.python }}
           cache: true
@@ -46,7 +46,7 @@ jobs:
         env:
           os: ${{ matrix.os }}
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
