@@ -12,7 +12,7 @@ Alpha Stage, work in progress.
 ## Features
 - [x] Builtin command completion
 - [x] Documentation for commands and variables on hover
-- [x] Formatting (by [`cmake-format`](https://github.com/cheshirekow/cmake_format))
+- [x] Formatting (by [`cmake-format`](https://github.com/cheshirekow/cmake_format)) (configurable)
 
 ## Commands
 
@@ -42,6 +42,8 @@ $ pip install cmake-language-server
       ],
       "initializationOptions": {
         "buildDirectory": "build"
+        "formatProgram": "gersemi"
+        "formatArgs": [ "--definitions", "cmake" ]
       }
     }
   }
