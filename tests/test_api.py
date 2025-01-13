@@ -5,7 +5,7 @@ from cmake_language_server.api import API
 
 
 def test_query_with_cache(cmake_build: Path) -> None:
-    api = API("cmake", cmake_build)
+    api = API("cmake", cmake_build, "cmake-format", [])
     assert api.query()
 
     query = cmake_build / ".cmake" / "api" / "v1" / "query"
@@ -16,14 +16,14 @@ def test_query_with_cache(cmake_build: Path) -> None:
 
 
 def test_query_without_cache(cmake_build: Path) -> None:
-    api = API("cmake", cmake_build)
+    api = API("cmake", cmake_build, "cmake-format", [])
     (cmake_build / "CMakeCache.txt").unlink()
 
     assert not api.query()
 
 
 def test_read_variable(cmake_build: Path) -> None:
-    api = API("cmake", cmake_build)
+    api = API("cmake", cmake_build, "cmake-format", [])
     assert api.query()
     assert api.read_reply()
 
@@ -31,7 +31,7 @@ def test_read_variable(cmake_build: Path) -> None:
 
 
 def test_read_cmake_files(cmake_build: Path) -> None:
-    api = API("cmake", cmake_build)
+    api = API("cmake", cmake_build, "cmake-format", [])
     api.parse_doc()
     assert api.query()
     api.read_reply()
@@ -52,7 +52,7 @@ def test_read_cmake_files(cmake_build: Path) -> None:
 
 
 def test_parse_commands(cmake_build: Path) -> None:
-    api = API("cmake", cmake_build)
+    api = API("cmake", cmake_build, "cmake-format", [])
     api.parse_doc()
 
     p = subprocess.run(
@@ -72,7 +72,7 @@ def test_parse_commands(cmake_build: Path) -> None:
 
 
 def test_parse_variables(cmake_build: Path) -> None:
-    api = API("cmake", cmake_build)
+    api = API("cmake", cmake_build, "cmake-format", [])
     api.parse_doc()
 
     p = subprocess.run(
@@ -93,7 +93,7 @@ def test_parse_variables(cmake_build: Path) -> None:
 
 
 def test_parse_modules(cmake_build: Path) -> None:
-    api = API("cmake", cmake_build)
+    api = API("cmake", cmake_build, "cmake-format", [])
     api.parse_doc()
 
     p = subprocess.run(

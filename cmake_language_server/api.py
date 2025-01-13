@@ -22,6 +22,8 @@ def _tidy_doc(doc: str) -> str:
 class API(object):
     _cmake: str
     _build: Path
+    _formatProgram: Path
+    _formatArgs: List[str]
     _uuid: uuid.UUID
     _builtin_commands: Dict[str, str]
     _builtin_variables: Dict[str, str]
@@ -31,10 +33,12 @@ class API(object):
     _cached_variables: Dict[str, str]
     _generated_list_parsed: bool
 
-    def __init__(self, cmake: str, build: Path):
+    def __init__(self, cmake: str, build: Path, _formatProgram: Path, _formatArgs: List[str]):
         self._cmake = cmake
         self._build = Path(build)
         self._uuid = uuid.uuid4()
+        self._formatProgram = Path(_formatProgram)
+        self._formatArgs = _formatArgs
 
         self._builtin_commands = {}
         self._builtin_variables = {}
