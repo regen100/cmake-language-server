@@ -27,7 +27,7 @@ from lsprotocol.types import (
     TextDocumentIdentifier,
     TextDocumentItem,
 )
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 
 from cmake_language_server.server import CMakeLanguageServer
 

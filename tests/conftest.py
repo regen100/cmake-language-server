@@ -7,7 +7,7 @@ from typing import Iterable, Tuple
 
 import pytest
 from lsprotocol.types import EXIT, SHUTDOWN
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 
 from cmake_language_server.server import CMakeLanguageServer
 
