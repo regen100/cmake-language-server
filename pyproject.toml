@@ -3,12 +3,12 @@ name = "cmake-language-server"
 dynamic = ["version"]
 description = "CMake LSP Implementation"
 authors = [
-    {name = "Regen"},
+    {name = "Tias"},
 ]
 dependencies = [
     "pygls>=1.1.1",
 ]
-requires-python = ">=3.8.0,<3.14"
+requires-python = ">=3.10.0,<3.16"
 readme = "README.md"
 license = {text = "MIT"}
 keywords = ["cmake", "completion", "vim", "lsp"]
@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [project.urls]
-repository = "https://github.com/regen100/cmake-language-server"
+repository = "https://github.com/Timur-ux/cmake-language-server"
 
 [project.scripts]
 cmake-language-server = "cmake_language_server.server:main"

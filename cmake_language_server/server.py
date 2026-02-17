@@ -31,12 +31,11 @@ from lsprotocol.types import (
     TextDocumentPositionParams,
     TextEdit,
 )
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 
 from .api import API
 
 logger = logging.getLogger(__name__)
-
 
 class CMakeLanguageServer(LanguageServer):
     _api: Optional[API]

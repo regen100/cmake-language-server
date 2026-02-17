@@ -1,4 +1,4 @@
-import logging
+import logging 
 import os
 from pathlib import Path
 from subprocess import PIPE, run
@@ -7,7 +7,7 @@ from typing import Iterable, Tuple
 
 import pytest
 from lsprotocol.types import EXIT, SHUTDOWN
-from pygls.server import LanguageServer
+from pygls.lsp.server import LanguageServer
 
 from cmake_language_server.server import CMakeLanguageServer
 
@@ -51,10 +51,10 @@ def client_server() -> Iterable[Tuple[LanguageServer, CMakeLanguageServer]]:
     yield client, server
 
     # fix bug on python 3.7
-    if hasattr(client.loop, "_signal_handlers"):
-        client.loop._signal_handlers.clear()
+    # if hasattr(client.loop, "_signal_handlers"):
+        # client.loop._signal_handlers.clear()
 
-    client.lsp.send_request(SHUTDOWN)  # type:ignore[no-untyped-call]
-    client.lsp.notify(EXIT)
+    client.protocol.send_request(SHUTDOWN)  # type:ignore[no-untyped-call]
+    client.protocol.notify(EXIT)
     client_thread.join()
     server_thread.join()

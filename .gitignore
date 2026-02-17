@@ -1,5 +1,8 @@
 cmake_language_server/version.py
 
+.venv/
+pyrightconfig.json
+
 /build/
 /dist/
 __pycache__/
@@ -11,3 +14,5 @@ coverage.xml
 
 .pdm-python
 __pypackages__/
+
+.pdm-build/
