@@ -4,8 +4,11 @@
 [metadata]
 groups = ["default", "dev", "lint"]
 strategy = ["cross_platform"]
-lock_version = "4.4.1"
-content_hash = "sha256:801e3af66b4127c047d051c3b10a9b5e0b793d27f5eab4fd0b1514cfdda34803"
+lock_version = "4.5.1"
+content_hash = "sha256:9242e3228f2757753a69fbc0d2fb3312c921d0f1d022b3f95e63991b31a0323e"
+
+[[metadata.targets]]
+requires_python = ">=3.8.0,<3.16"
 
 [[package]]
 name = "attrs"
